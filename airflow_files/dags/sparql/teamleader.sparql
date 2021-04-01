@@ -1,0 +1,104 @@
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX org:        <http://www.w3.org/ns/org#>
+PREFIX meemoo:     <https://meemoo.be/ns/org#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX schema: <https://schema.org/>
+PREFIX map: <https://localhost/#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+
+    ?org a org:Organization;
+            skos:altLabel ?orgName;
+            meemoo:accountManager ?am;
+            foaf:homepage ?homepage;
+            org:hasPrimarySite [
+                a org:Site;
+                org:siteAddress ?siteAddress
+            ].
+    
+    ?siteAddress a schema:PostalAddress;
+        schema:streetAddress ?streetAddress;
+        schema:addressCountry ?country;
+        schema:postalCode ?postalCode;
+        schema:addressLocality ?city.
+        
+        
+    ?am a schema:Person, foaf:Agent; 
+        schema:givenName ?fn; 
+        schema:familyName ?ln;
+        schema:email ?mbox;
+        org:holds ?post.
+
+    ?post  a org:Post;
+            org:postIn <http://data.meemoo.be/organizations/meemoo>;
+            org:role ?role.
+
+    ?role a org:Role; skos:prefLabel ?function. 
+
+    <http://data.meemoo.be/organizations/meemoo> a org:Organization .
+}
+WHERE {
+    # Organization
+    ?o map:custom_fields [
+        map:label "5.1 - OR-ID";
+        map:value ?orid 
+    ] .
+
+        
+    OPTIONAL { ?o map:name ?orgName. }
+    OPTIONAL { 
+        ?o map:website ?website.
+        
+        BIND (URI(IF(STRSTARTS(?website, 'www'),CONCAT('http://',?website),?website)) AS ?homepage)
+    }
+    
+    # Account manager
+    ?o  <https://localhost/#responsible_user> ?ru .
+    ?ru map:id ?amid;
+        map:first_name ?fn;
+        map:last_name ?ln;
+        map:email ?email .
+        
+    OPTIONAL { 
+        ?ru map:function ?function.
+        BIND (URI(CONCAT('http://data.meemoo.be/posts/', ENCODE_FOR_URI(?function))) AS ?post)
+        BIND (URI(CONCAT('http://data.meemoo.be/roles/', ENCODE_FOR_URI(?function))) AS ?role)
+    }
+
+    # Address
+    OPTIONAL {
+        ?o <https://localhost/#addresses> ?addresses.
+        
+        ?addresses map:type "primary"; 
+                    map:address ?primaryAddress.
+        
+        ?primaryAddress map:line_1 ?streetAddress;
+                map:postal_code ?postalCode;
+                map:city ?city;
+                map:country ?country. 
+            
+        BIND (URI(CONCAT('http://data.meemoo.be/locations/', MD5(?streetAddress))) AS ?siteAddress)
+    }
+    
+    #
+    OPTIONAL {
+        ?o map:custom_fields [
+                map:label "5.1 - OR-ID";
+                map:value ?orid 
+            ] .
+    }
+
+    OPTIONAL {
+        ?o map:custom_fields [
+                map:label "2.2 - CP status";
+                map:value ?cpstatus 
+            ] .
+    }
+
+        
+    BIND (URI(CONCAT('http://data.meemoo.be/organizations/', ?orid)) AS ?org)
+    BIND (URI(CONCAT('http://data.meemoo.be/people/', ?amid)) AS ?am)
+    BIND (CONCAT('mailto:', ?email) AS ?mbox)
+    
+}

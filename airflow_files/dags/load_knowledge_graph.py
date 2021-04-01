@@ -73,7 +73,7 @@ with DAG(
         
         # Closing file
         outfile.close()
-        return "Data has been dumped as JSON."
+        return "Records from {}.{} been written to {}.".format(schema, table, filename)
 
     def sparql_update(http_conn_id, query, method = POST, auth_type = DIGEST):
         """Execute a sparql query on a sparql endpoint."""
@@ -102,16 +102,14 @@ with DAG(
         return results.response.read()
 
     def update(ds, **kwargs):
-        http_conn_id = kwargs['http_conn_id']
-
-        query = kwargs['query'] or kwargs['templates_dict']['query']
+        http_conn_id = kwargs.get('http_conn_id')
+        query = kwargs.get('query')
 
         try:
             with open(query) as f:
                 sparql_update(http_conn_id, f.readlines())
         except FileNotFoundError:
             sparql_update(http_conn_id, query)
-
 
     extract_json_task = PythonOperator(
         task_id='extract_json',
