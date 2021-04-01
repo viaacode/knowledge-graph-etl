@@ -38,7 +38,7 @@ default_args = {
     # 'trigger_rule': 'all_success'
 }
 with DAG(
-    'meemoo Knowledge Graph ETL',
+    'knowledge-graph-etl',
     default_args=default_args,
     description='ETL to extract, map and load JSON data into an RDF triple store.',
     schedule_interval=None,#timedelta(days=1),
