@@ -38,10 +38,10 @@ default_args = {
     # 'trigger_rule': 'all_success'
 }
 with DAG(
-    'tutorial',
+    'meemoo Knowledge Graph ETL',
     default_args=default_args,
-    description='A simple tutorial DAG',
-    schedule_interval=timedelta(days=1),
+    description='ETL to extract, map and load JSON data into an RDF triple store.',
+    schedule_interval=None,#timedelta(days=1),
     start_date=days_ago(2),
     tags=['example'],
 ) as dag:
@@ -158,6 +158,6 @@ with DAG(
         }
     )
 
-
+extract_json_task >> json_to_rdf_task >> load_rdf_task >> map_rdf_task
 
     
