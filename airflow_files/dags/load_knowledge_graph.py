@@ -75,8 +75,19 @@ with DAG(
         outfile.close()
         return "Records from {}.{} been written to {}.".format(schema, table, filename)
 
-    def sparql_update(http_conn_id, query, method = POST, auth_type = DIGEST):
+    def sparql_update(ds, **kwargs):
         """Execute a sparql query on a sparql endpoint."""
+
+        http_conn_id = kwargs.get('http_conn_id')
+        query = kwargs.get('query')
+        method = kwargs.get('method', POST)
+        auth_type = kwargs.get('auth_type', DIGEST)
+
+        try:
+            with open(query) as f:
+                query = f.read()
+        except FileNotFoundError:
+            print("Query does not point to a file; executing as query text.")
         
         conn = HttpHook.get_connection(http_conn_id)
 
@@ -100,16 +111,6 @@ with DAG(
 
         results = sparql.query()
         return results.response.read()
-
-    def update(ds, **kwargs):
-        http_conn_id = kwargs.get('http_conn_id')
-        query = kwargs.get('query')
-
-        try:
-            with open(query) as f:
-                sparql_update(http_conn_id, f.readlines())
-        except FileNotFoundError:
-            sparql_update(http_conn_id, query)
 
     extract_json_task = PythonOperator(
         task_id='extract_json',
@@ -135,7 +136,7 @@ with DAG(
     
     load_rdf_task = PythonOperator(
         task_id='load_rdf',
-        python_callable=update,
+        python_callable=sparql_update,
         op_kwargs={
             'http_conn_id': 'sparql_endpoint'
         },
@@ -150,7 +151,7 @@ with DAG(
 
     map_rdf_task = PythonOperator(
         task_id='map_rdf',
-        python_callable=update,
+        python_callable=sparql_update,
         op_kwargs={
             'query': 'sparql/ldap-mapping.sparql', 
             'http_conn_id': 'sparql_endpoint'
