@@ -1,0 +1,79 @@
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX org:        <http://www.w3.org/ns/org#>
+PREFIX meemoo:     <https://meemoo.be/ns/org#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX schema: <https://schema.org/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+PREFIX graphs: <https://data.meemoo.be/graphs/>
+PREFIX source: <https://data.meemoo.be/sources/>
+
+#WITH graphs:organizations
+INSERT {
+    GRAPH graphs:organizations {
+        ?org a org:Organization;
+                skos:prefLabel ?orgName;
+                foaf:homepage ?homepage;
+                org:hasPrimarySite ?site.
+                
+        ?site a org:Site;
+            org:siteAddress ?siteAddress.
+        
+        ?siteAddress a schema:PostalAddress;
+            schema:streetAddress ?streetAddress;
+            schema:addressCountry ?country;
+            schema:postalCode ?postalCode;
+            schema:addressLocality ?city.
+            
+        ?org meemoo:hasAccountManager ?am.
+        ?am meemoo:isAccountManagerOf ?org.
+    }
+}
+USING graphs:tl_companies
+WHERE {
+    # Organizations
+    ?o source:custom_fields [
+        source:value ?orid;
+        source:definition [
+            source:id "c3a10038-7a8e-0e96-bd4a-53e4668e6244"
+        ]
+    ] .
+    BIND (URI(CONCAT('http://data.meemoo.be/sites/', ?orid, '-primary')) AS ?site)
+    BIND (URI(CONCAT('http://data.meemoo.be/organizations/', ?orid)) AS ?org)
+
+    OPTIONAL { ?o source:name ?orgName. }
+    OPTIONAL { 
+        ?o source:website ?website.
+
+        BIND (URI(IF(STRSTARTS(?website, 'www'),CONCAT('http://',?website),?website)) AS ?homepage)
+    }
+
+    OPTIONAL {
+        ?o source:custom_fields [
+                source:label "2.2 - CP status";
+                source:value ?cpstatus 
+            ] .
+    }
+
+    # Address
+    OPTIONAL {
+        ?o source:addresses ?addresses.
+
+        ?addresses source:type "primary"; 
+                   source:address ?primaryAddress.
+
+        ?primaryAddress source:line_1 ?streetAddress;
+                source:postal_code ?postalCode;
+                source:city ?city;
+                source:country ?country. 
+
+        BIND (URI(CONCAT('http://data.meemoo.be/locations/', MD5(CONCAT(?streetAddress, ?postalCode, ?city)))) AS ?siteAddress)
+    }
+
+    # Accountmanagers
+    ?o source:responsible_user [
+        source:id ?amid
+    ].
+
+    BIND (URI(CONCAT('http://data.meemoo.be/people/', ?amid)) AS ?am) 
+}
