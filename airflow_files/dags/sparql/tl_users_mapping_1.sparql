@@ -35,10 +35,10 @@ WHERE {
     OPTIONAL { 
         ?ru source:function ?function.
         BIND (STRLANG(?function, "nl") AS ?function_label)
-        BIND (URI(CONCAT('http://data.meemoo.be/posts/', ENCODE_FOR_URI(?function))) AS ?post)
-        BIND (URI(CONCAT('http://data.meemoo.be/roles/', ENCODE_FOR_URI(?function))) AS ?role)
+        BIND (URI(CONCAT('https://data.meemoo.be/posts/', ENCODE_FOR_URI(?function))) AS ?post)
+        BIND (URI(CONCAT('https://data.meemoo.be/roles/', ENCODE_FOR_URI(?function))) AS ?role)
     }
 
-    BIND (URI(CONCAT('http://data.meemoo.be/people/', ?amid)) AS ?am)
+    BIND (URI(CONCAT('https://data.meemoo.be/people/', ?amid)) AS ?am)
     BIND (CONCAT('mailto:', ?email) AS ?mbox)
 }

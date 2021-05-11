@@ -58,8 +58,8 @@ WHERE {
     OPTIONAL {
         ?o source:st ?region.
     }
-    BIND (URI(CONCAT('http://data.meemoo.be/sites/', ?orid, '-primary')) AS ?site)        
-    BIND (URI(CONCAT('http://data.meemoo.be/addresses/', MD5(CONCAT(?streetAddress, ?postalCode, ?city)))) AS ?siteAddress)
+    BIND (URI(CONCAT('https://data.meemoo.be/sites/', ?orid, '-primary')) AS ?site)        
+    BIND (URI(CONCAT('https://data.meemoo.be/addresses/', MD5(CONCAT(?streetAddress, ?postalCode, ?city)))) AS ?siteAddress)
 
     # Units
     OPTIONAL {
@@ -68,7 +68,7 @@ WHERE {
         ?u source:ou ?ou;
            source:description ?uname .
 
-        BIND (URI(CONCAT('http://data.meemoo.be/organizations/', ?ou)) AS ?unit)
+        BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?ou)) AS ?unit)
 
 
         # Address
@@ -80,8 +80,8 @@ WHERE {
             ?u source:st ?u_region.
         }
 
-        BIND (URI(CONCAT('http://data.meemoo.be/sites/', ?ou)) AS ?u_site)        
-        BIND (URI(CONCAT('http://data.meemoo.be/addresses/', MD5(?u_streetAddress))) AS ?u_siteAddress)
+        BIND (URI(CONCAT('https://data.meemoo.be/sites/', ?ou)) AS ?u_site)        
+        BIND (URI(CONCAT('https://data.meemoo.be/addresses/', MD5(?u_streetAddress))) AS ?u_siteAddress)
 
     }
 }

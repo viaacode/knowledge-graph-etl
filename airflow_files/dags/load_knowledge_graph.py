@@ -56,7 +56,7 @@ with DAG(
     tags=["example"],
     user_defined_macros={
         'quote_plus': quote_plus,
-        'list_to_nt': lambda l: ','.join(list(map(lambda u: '<{}>'.format(u), l)))
+        'list_to_nt': lambda l: ', '.join(list(map(lambda u: '<{}>'.format(u), l)))
     }
 ) as dag:
 
@@ -399,8 +399,8 @@ with DAG(
             INSERT DATA 
             {
                 GRAPH <{{params.graph}}> {
-                    <{{params.result}}> prov:wasDerivedFrom {{params.sources}};
-                                         prov:wasGeneratedBy :{{ quote_plus(run_id) }}.
+                    <{{params.result}}> prov:wasDerivedFrom {{ list_to_nt(params.sources)}};
+                                        prov:wasGeneratedBy :{{ quote_plus(run_id) }}.
                                          
                     :{{ quote_plus(run_id) }} a prov:Activity, :AirflowRun;
                         prov:generated <{{params.result}}>;
@@ -412,12 +412,12 @@ with DAG(
             """,
         },
         params={
-            "sources": ','.join(list(map(lambda a: '<{}>'.format(a), [
+            "sources": [
                 "https://data.meemoo.be/graphs/tl_companies", 
                 "https://data.meemoo.be/graphs/tl_users", 
                 "https://data.meemoo.be/graphs/ldap_organizations", 
                 "https://data.meemoo.be/graphs/ldap_entities"
-            ]))),
+            ],
             "result": "https://data.meemoo.be/graphs/organizations",
             "graph": "https://data.meemoo.be/graphs/provenance",
         },

@@ -1,5 +1,5 @@
 PREFIX prov: <http://www.w3.org/ns/prov#>
-PREFIX graphs: <http://data.meemoo.be/graphs/>
+PREFIX graphs: <https://data.meemoo.be/graphs/>
 
 INSERT DATA 
 {

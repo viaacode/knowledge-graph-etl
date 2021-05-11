@@ -38,8 +38,8 @@ WHERE {
             source:id "c3a10038-7a8e-0e96-bd4a-53e4668e6244"
         ]
     ] .
-    BIND (URI(CONCAT('http://data.meemoo.be/sites/', ?orid, '-primary')) AS ?site)
-    BIND (URI(CONCAT('http://data.meemoo.be/organizations/', ?orid)) AS ?org)
+    BIND (URI(CONCAT('https://data.meemoo.be/sites/', ?orid, '-primary')) AS ?site)
+    BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?orid)) AS ?org)
 
     OPTIONAL { ?o source:name ?orgName. }
     OPTIONAL { 
@@ -67,7 +67,7 @@ WHERE {
                 source:city ?city;
                 source:country ?country. 
 
-        BIND (URI(CONCAT('http://data.meemoo.be/locations/', MD5(CONCAT(?streetAddress, ?postalCode, ?city)))) AS ?siteAddress)
+        BIND (URI(CONCAT('https://data.meemoo.be/locations/', MD5(CONCAT(?streetAddress, ?postalCode, ?city)))) AS ?siteAddress)
     }
 
     # Accountmanagers
@@ -75,5 +75,5 @@ WHERE {
         source:id ?amid
     ].
 
-    BIND (URI(CONCAT('http://data.meemoo.be/people/', ?amid)) AS ?am) 
+    BIND (URI(CONCAT('https://data.meemoo.be/people/', ?amid)) AS ?am) 
 }
