@@ -19,7 +19,7 @@ USING graphs:ldap_entities
 WHERE {
     # Organization
     ?o source:objectClass "x-be-viaa-educationalOrganization";
-    source:o ?orid;
+    source:o ?orid.
 
     BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?orid)) AS ?org)
 }

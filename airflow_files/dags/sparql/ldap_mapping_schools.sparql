@@ -19,7 +19,7 @@ WHERE {
     # Organization
     ?o source:objectClass "organization";
     source:businessCategory "School";
-    source:o ?orid;
+    source:o ?orid.
 
     BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?orid)) AS ?org)
 }
