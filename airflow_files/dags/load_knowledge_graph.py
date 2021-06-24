@@ -12,7 +12,7 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.providers.http.operators.http import HttpHook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.dates import days_ago
-from construction_site import parse_json
+from construction_site import parse_json, SparqlUpdateHook
 from psycopg2 import sql
 from rdflib import Graph, Namespace
 from SPARQLWrapper import DIGEST, POST, SPARQLWrapper
@@ -81,12 +81,7 @@ with DAG(
         cursor.execute(query)
         return cursor
 
-    def _to_nt(t, namespace_manager=None):
-        return "{} {} {} . \n".format(
-            t[0].n3(namespace_manager),
-            t[1].n3(namespace_manager),
-            t[2].n3(namespace_manager),
-        )
+
 
     def extract_json(ds, **kwargs):
         """Extract the JSON data from the postgres database."""
@@ -131,7 +126,7 @@ with DAG(
         for record in cursor:
             nr_of_triples = 0
             for t in parse_json(record[0], namespace=ns):
-                outfile.write(_to_nt(t, namespace_manager=g.namespace_manager))
+                outfile.write(SparqlUpdateHook.to_ntriples(t, namespace_manager=g.namespace_manager))
                 nr_of_triples += 1
             print(
                 "Record {} produced {} triples.".format(cursor.rownumber, nr_of_triples)
@@ -154,26 +149,13 @@ with DAG(
         field = kwargs.get("field")
         namespace = kwargs.get("namespace")
         http_conn_id = kwargs.get("http_conn_id")
-        method = kwargs.get("method", POST)
-        auth_type = kwargs.get("auth_type", DIGEST)
 
         cursor = _get_cursor(postgres_conn_id, schema, table, field)
+        hook  = SparqlUpdateHook(http_conn_id)
+
         for record in cursor:
-            sparql = "INSERT DATA {{"
-
-            for t in parse_json(record[0], namespace=namespace):
-                sparql += _to_nt(t)
-
-            sparql = "}}"
-
-            result = sparql_update(
-                ds,
-                query=sparql,
-                http_conn_id=http_conn_id,
-                auth_type=auth_type,
-                method=method,
-            )
-            print("Executed: {} ({})".format(sparql, result))
+            triples_gen = parse_json(record[0], namespace=namespace)
+            hook.insert(triples_gen)
 
         print(
             "JSON records from {}.{} have been inserted in {}.".format(
@@ -191,9 +173,6 @@ with DAG(
         else:
             query = kwargs.get("query")
 
-        method = kwargs.get("method", POST)
-        auth_type = kwargs.get("auth_type", DIGEST)
-
         query_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), query)
         if os.path.isfile(query_path):
             with open(query_path) as f:
@@ -201,30 +180,7 @@ with DAG(
         else:
             print("Query does not point to a file; executing as query text.")
 
-        conn = HttpHook.get_connection(http_conn_id)
-
-        if conn.host and "://" in conn.host:
-            endpoint = conn.host
-        else:
-            # schema defaults to HTTP
-            schema = conn.schema if conn.schema else "http"
-            if conn.host:
-                host = conn.host
-            else:
-                raise ValueError("Host cannot be empty")
-            endpoint = schema + "://" + host
-
-        print("Query: {}".format(query))
-
-        sparql = SPARQLWrapper(endpoint)
-
-        sparql.setHTTPAuth(auth_type)
-        sparql.setCredentials(conn.login, conn.password)
-        sparql.setMethod(method)
-        sparql.setQuery(query)
-
-        results = sparql.query()
-        print(results.response.read())
+        SparqlUpdateHook(http_conn_id).sparql_update(query)
 
 
     # Turn all JSON data into RDF files
