@@ -1,23 +1,18 @@
 import os.path
 from datetime import timedelta
-from re import template
+from urllib.parse import quote_plus
 
 # The DAG object; we'll need this to instantiate a DAG
 from airflow import DAG
 from airflow.models import Variable
-from airflow.models.connection import Connection
+
 # Operators; we need this to operate!
-from airflow.operators.bash import BashOperator
 from airflow.operators.python_operator import PythonOperator
-from airflow.providers.http.operators.http import HttpHook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.dates import days_ago
-from construction_site import parse_json, SparqlUpdateHook
+from construction_site import SparqlUpdateHook, parse_json
 from psycopg2 import sql
 from rdflib import Graph, Namespace
-from SPARQLWrapper import DIGEST, POST, SPARQLWrapper
-from SPARQLWrapper.Wrapper import BASIC
-from urllib.parse import quote_plus
 
 # These args will get passed on to each operator
 # You can override them on a per-task basis during operator initialization
@@ -55,9 +50,9 @@ with DAG(
     start_date=days_ago(2),
     tags=["example"],
     user_defined_macros={
-        'quote_plus': quote_plus,
-        'list_to_nt': lambda l: ', '.join(list(map(lambda u: '<{}>'.format(u), l)))
-    }
+        "quote_plus": quote_plus,
+        "list_to_nt": lambda l: ", ".join(list(map(lambda u: "<{}>".format(u), l))),
+    },
 ) as dag:
 
     def _get_cursor(postgres_conn_id, schema, table, field, records=True):
@@ -80,8 +75,6 @@ with DAG(
         print("Retrieved cursor for {}".format(query))
         cursor.execute(query)
         return cursor
-
-
 
     def extract_json(ds, **kwargs):
         """Extract the JSON data from the postgres database."""
@@ -126,7 +119,11 @@ with DAG(
         for record in cursor:
             nr_of_triples = 0
             for t in parse_json(record[0], namespace=ns):
-                outfile.write(SparqlUpdateHook.to_ntriples(t, namespace_manager=g.namespace_manager))
+                outfile.write(
+                    SparqlUpdateHook.to_ntriples(
+                        t, namespace_manager=g.namespace_manager
+                    )
+                )
                 nr_of_triples += 1
             print(
                 "Record {} produced {} triples.".format(cursor.rownumber, nr_of_triples)
@@ -151,7 +148,7 @@ with DAG(
         http_conn_id = kwargs.get("http_conn_id")
 
         cursor = _get_cursor(postgres_conn_id, schema, table, field)
-        hook  = SparqlUpdateHook(http_conn_id)
+        hook = SparqlUpdateHook(http_conn_id)
 
         for record in cursor:
             triples_gen = parse_json(record[0], namespace=namespace)
@@ -182,7 +179,6 @@ with DAG(
 
         SparqlUpdateHook(http_conn_id).sparql_update(query)
 
-
     # Turn all JSON data into RDF files
     e1 = PythonOperator(
         task_id="ldap_organizations_extract_json",
@@ -192,7 +188,7 @@ with DAG(
             "table": "ldap_organizations",
             "field": "ldap_content",
             "filename": DIR + "/ldap_organizations.ttl",
-            "postgres_conn_id": "avo2",
+            "postgres_conn_id": "etl_harvest",
             "namespace": SRC_NS,
         },
     )
@@ -205,7 +201,7 @@ with DAG(
             "table": "ldap_entities",
             "field": "ldap_content",
             "filename": DIR + "/ldap_entities.ttl",
-            "postgres_conn_id": "avo2",
+            "postgres_conn_id": "etl_harvest",
             "namespace": SRC_NS,
         },
     )
@@ -218,7 +214,7 @@ with DAG(
             "table": "tl_users",
             "field": "tl_content",
             "filename": DIR + "/tl_users.ttl",
-            "postgres_conn_id": "avo2",
+            "postgres_conn_id": "etl_harvest",
             "namespace": SRC_NS,
         },
     )
@@ -231,7 +227,7 @@ with DAG(
             "table": "tl_companies",
             "field": "tl_content",
             "filename": DIR + "/tl_companies.ttl",
-            "postgres_conn_id": "avo2",
+            "postgres_conn_id": "etl_harvest",
             "namespace": SRC_NS,
         },
     )
@@ -350,7 +346,7 @@ with DAG(
             "query": """
             PREFIX prov: <http://www.w3.org/ns/prov#>
             PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#> 
-            PREFIX : <http://example.org/>
+            PREFIX : <https://data.meemoo.be/>
 
             INSERT DATA 
             {
@@ -369,10 +365,10 @@ with DAG(
         },
         params={
             "sources": [
-                "https://data.meemoo.be/graphs/tl_companies", 
-                "https://data.meemoo.be/graphs/tl_users", 
-                "https://data.meemoo.be/graphs/ldap_organizations", 
-                "https://data.meemoo.be/graphs/ldap_entities"
+                "https://data.meemoo.be/graphs/tl_companies",
+                "https://data.meemoo.be/graphs/tl_users",
+                "https://data.meemoo.be/graphs/ldap_organizations",
+                "https://data.meemoo.be/graphs/ldap_entities",
             ],
             "result": "https://data.meemoo.be/graphs/organizations",
             "graph": "https://data.meemoo.be/graphs/provenance",

@@ -1,9 +1,0 @@
-PREFIX prov: <http://www.w3.org/ns/prov#>
-PREFIX graphs: <https://data.meemoo.be/graphs/>
-
-INSERT DATA 
-{
-  GRAPH graphs:provenance {
-    graphs:organizations prov:wasDerivedFrom graphs:tl_companies, graphs:tl_users, graphs:ldap_organizations, graphs:ldap_entities .
-  }
-}
