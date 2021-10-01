@@ -14,7 +14,6 @@ INSERT {
     }
 }
 USING graphs:ldap_organizations
-USING graphs:ldap_entities
 WHERE {
     # Organization
     ?o source:objectClass "organization";

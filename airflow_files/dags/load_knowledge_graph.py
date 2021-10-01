@@ -10,7 +10,8 @@ from airflow.models import Variable
 from airflow.operators.python_operator import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.dates import days_ago
-from construction_site import SparqlUpdateHook, parse_json
+from sparql_update import SparqlUpdateHook
+from parse_functions import parse_json
 from psycopg2 import sql
 from rdflib import Graph, Namespace
 
@@ -138,7 +139,7 @@ with DAG(
         )
 
     def extract_and_insert(ds, **kwargs):
-        """Extract the JSON data from the postgres database and map it on the fly."""
+        """Extract the JSON data from the postgres database, map it, and directly insert it."""
 
         postgres_conn_id = kwargs.get("postgres_conn_id")
         schema = kwargs.get("schema")
@@ -146,13 +147,14 @@ with DAG(
         field = kwargs.get("field")
         namespace = kwargs.get("namespace")
         http_conn_id = kwargs.get("http_conn_id")
+        graph = kwargs.get("graph", None)
 
         cursor = _get_cursor(postgres_conn_id, schema, table, field)
-        hook = SparqlUpdateHook(http_conn_id)
+        hook = SparqlUpdateHook(method="POST", http_conn_id=http_conn_id)
 
         for record in cursor:
             triples_gen = parse_json(record[0], namespace=namespace)
-            hook.insert(triples_gen)
+            hook.insert(triples_gen, graph)
 
         print(
             "JSON records from {}.{} have been inserted in {}.".format(
@@ -177,111 +179,157 @@ with DAG(
         else:
             print("Query does not point to a file; executing as query text.")
 
-        SparqlUpdateHook(http_conn_id).sparql_update(query)
+        SparqlUpdateHook(method="POST", http_conn_id=http_conn_id).sparql_update(query)
 
     # Turn all JSON data into RDF files
+    # e1 = PythonOperator(
+    #     task_id="ldap_organizations_extract_json",
+    #     python_callable=extract_json_as_rdf,
+    #     op_kwargs={
+    #         "schema": "public",
+    #         "table": "ldap_organizations",
+    #         "field": "ldap_content",
+    #         "filename": DIR + "/ldap_organizations.ttl",
+    #         "postgres_conn_id": "etl_harvest",
+    #         "namespace": SRC_NS,
+    #     },
+    # )
+
+    # e2 = PythonOperator(
+    #     task_id="tl_users_extract_json",
+    #     python_callable=extract_json_as_rdf,
+    #     op_kwargs={
+    #         "schema": "public",
+    #         "table": "tl_users",
+    #         "field": "tl_content",
+    #         "filename": DIR + "/tl_users.ttl",
+    #         "postgres_conn_id": "etl_harvest",
+    #         "namespace": SRC_NS,
+    #     },
+    # )
+
+    # e3 = PythonOperator(
+    #     task_id="tl_companies_extract_json",
+    #     python_callable=extract_json_as_rdf,
+    #     op_kwargs={
+    #         "schema": "public",
+    #         "table": "tl_companies",
+    #         "field": "tl_content",
+    #         "filename": DIR + "/tl_companies.ttl",
+    #         "postgres_conn_id": "etl_harvest",
+    #         "namespace": SRC_NS,
+    #     },
+    # )
+
     e1 = PythonOperator(
         task_id="ldap_organizations_extract_json",
-        python_callable=extract_json_as_rdf,
+        python_callable=extract_and_insert,
         op_kwargs={
-            "schema": "shared",
+            "schema": "public",
             "table": "ldap_organizations",
             "field": "ldap_content",
-            "filename": DIR + "/ldap_organizations.ttl",
             "postgres_conn_id": "etl_harvest",
+            "http_conn_id": "sparql_endpoint",
             "namespace": SRC_NS,
+            "graph": "https://data.meemoo.be/graphs/ldap_organizations",
         },
     )
 
     e2 = PythonOperator(
-        task_id="ldap_entities_extract_json",
-        python_callable=extract_json_as_rdf,
+        task_id="tl_users_extract_json",
+        python_callable=extract_and_insert,
         op_kwargs={
-            "schema": "shared",
-            "table": "ldap_entities",
-            "field": "ldap_content",
-            "filename": DIR + "/ldap_entities.ttl",
+            "schema": "public",
+            "table": "tl_users",
+            "field": "tl_content",
             "postgres_conn_id": "etl_harvest",
+            "http_conn_id": "sparql_endpoint",
             "namespace": SRC_NS,
+            "graph": "https://data.meemoo.be/graphs/tl_users",
         },
     )
 
     e3 = PythonOperator(
-        task_id="tl_users_extract_json",
-        python_callable=extract_json_as_rdf,
-        op_kwargs={
-            "schema": "shared",
-            "table": "tl_users",
-            "field": "tl_content",
-            "filename": DIR + "/tl_users.ttl",
-            "postgres_conn_id": "etl_harvest",
-            "namespace": SRC_NS,
-        },
-    )
-
-    e4 = PythonOperator(
         task_id="tl_companies_extract_json",
-        python_callable=extract_json_as_rdf,
+        python_callable=extract_and_insert,
         op_kwargs={
-            "schema": "shared",
+            "schema": "public",
             "table": "tl_companies",
             "field": "tl_content",
-            "filename": DIR + "/tl_companies.ttl",
             "postgres_conn_id": "etl_harvest",
+            "http_conn_id": "sparql_endpoint",
             "namespace": SRC_NS,
+            "graph": "https://data.meemoo.be/graphs/tl_companies",
         },
     )
 
     # load
 
-    l1 = PythonOperator(
-        task_id="ldap_organizations_load",
+    # l1 = PythonOperator(
+    #     task_id="ldap_organizations_load",
+    #     python_callable=sparql_update,
+    #     op_kwargs={"http_conn_id": "sparql_endpoint"},
+    #     templates_dict={
+    #         "query": "LOAD <file://{{params.file}}> INTO GRAPH <{{params.graph}}>"
+    #     },
+    #     params={
+    #         "file": "/data/ldap_organizations.ttl",
+    #         "graph": "https://data.meemoo.be/graphs/ldap_organizations",
+    #     },
+    # )
+
+    # l2 = PythonOperator(
+    #     task_id="tl_users_load",
+    #     python_callable=sparql_update,
+    #     op_kwargs={"http_conn_id": "sparql_endpoint"},
+    #     templates_dict={
+    #         "query": "LOAD <file://{{params.file}}> INTO GRAPH <{{params.graph}}>"
+    #     },
+    #     params={
+    #         "file": "/data/tl_users.ttl",
+    #         "graph": "https://data.meemoo.be/graphs/tl_users",
+    #     },
+    # )
+
+    # l3 = PythonOperator(
+    #     task_id="tl_companies_load",
+    #     python_callable=sparql_update,
+    #     op_kwargs={"http_conn_id": "sparql_endpoint"},
+    #     templates_dict={
+    #         "query": "LOAD <file://{{params.file}}> INTO GRAPH <{{params.graph}}>"
+    #     },
+    #     params={
+    #         "file": "/data/tl_companies.ttl",
+    #         "graph": "https://data.meemoo.be/graphs/tl_companies",
+    #     },
+    # )
+
+    c1 = PythonOperator(
+        task_id="ldap_organizations_clear",
         python_callable=sparql_update,
         op_kwargs={"http_conn_id": "sparql_endpoint"},
-        templates_dict={
-            "query": "LOAD <file://{{params.file}}> INTO GRAPH <{{params.graph}}>"
-        },
+        templates_dict={"query": "CLEAR GRAPH <{{params.graph}}>"},
         params={
-            "file": "/data/ldap_organizations.ttl",
             "graph": "https://data.meemoo.be/graphs/ldap_organizations",
         },
     )
 
-    l2 = PythonOperator(
-        task_id="ldap_entities_load",
+    c2 = PythonOperator(
+        task_id="tl_users_clear",
         python_callable=sparql_update,
         op_kwargs={"http_conn_id": "sparql_endpoint"},
-        templates_dict={
-            "query": "LOAD <file://{{params.file}}> INTO GRAPH <{{params.graph}}>"
-        },
+        templates_dict={"query": "CLEAR GRAPH <{{params.graph}}>"},
         params={
-            "file": "/data/ldap_entities.ttl",
-            "graph": "https://data.meemoo.be/graphs/ldap_entities",
-        },
-    )
-
-    l3 = PythonOperator(
-        task_id="tl_users_load",
-        python_callable=sparql_update,
-        op_kwargs={"http_conn_id": "sparql_endpoint"},
-        templates_dict={
-            "query": "LOAD <file://{{params.file}}> INTO GRAPH <{{params.graph}}>"
-        },
-        params={
-            "file": "/data/tl_users.ttl",
             "graph": "https://data.meemoo.be/graphs/tl_users",
         },
     )
 
-    l4 = PythonOperator(
-        task_id="tl_companies_load",
+    c3 = PythonOperator(
+        task_id="tl_companies_clear",
         python_callable=sparql_update,
         op_kwargs={"http_conn_id": "sparql_endpoint"},
-        templates_dict={
-            "query": "LOAD <file://{{params.file}}> INTO GRAPH <{{params.graph}}>"
-        },
+        templates_dict={"query": "CLEAR GRAPH <{{params.graph}}>"},
         params={
-            "file": "/data/tl_companies.ttl",
             "graph": "https://data.meemoo.be/graphs/tl_companies",
         },
     )
@@ -368,7 +416,6 @@ with DAG(
                 "https://data.meemoo.be/graphs/tl_companies",
                 "https://data.meemoo.be/graphs/tl_users",
                 "https://data.meemoo.be/graphs/ldap_organizations",
-                "https://data.meemoo.be/graphs/ldap_entities",
             ],
             "result": "https://data.meemoo.be/graphs/organizations",
             "graph": "https://data.meemoo.be/graphs/provenance",
@@ -376,14 +423,13 @@ with DAG(
         op_kwargs={"http_conn_id": "sparql_endpoint"},
     )
 
-    e1 >> l1
-    e2 >> l2
-    e3 >> l3
-    e4 >> l4
+    c1 >> e1
+    c2 >> e2
+    c3 >> e3
 
-    l1 >> [m1, m4, m5]
-    l2 >> [m1, m4, m5]
-    l3 >> m2
-    l4 >> m3
-    [l1, l2, l3, l4] >> c >> m6
+    e1 >> [m1, m4, m5]
+    e2 >> m2
+    e3 >> m3
+
+    [e1, e2, e3] >> c >> m6
     c >> [m1, m2, m3, m4, m5]
