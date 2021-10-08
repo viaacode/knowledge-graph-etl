@@ -152,8 +152,9 @@ with DAG(
         cursor = _get_cursor(postgres_conn_id, schema, table, field)
         hook = SparqlUpdateHook(method="POST", http_conn_id=http_conn_id)
 
+        
         for record in cursor:
-            triples_gen = parse_json(record[0], namespace=namespace)
+            triples_gen = parse_json(record[0], namespace=Namespace(namespace))
             hook.insert(triples_gen, graph)
 
         print(
@@ -308,7 +309,7 @@ with DAG(
         task_id="ldap_organizations_clear",
         python_callable=sparql_update,
         op_kwargs={"http_conn_id": "sparql_endpoint"},
-        templates_dict={"query": "CLEAR GRAPH <{{params.graph}}>"},
+        templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={
             "graph": "https://data.meemoo.be/graphs/ldap_organizations",
         },
@@ -318,7 +319,7 @@ with DAG(
         task_id="tl_users_clear",
         python_callable=sparql_update,
         op_kwargs={"http_conn_id": "sparql_endpoint"},
-        templates_dict={"query": "CLEAR GRAPH <{{params.graph}}>"},
+        templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={
             "graph": "https://data.meemoo.be/graphs/tl_users",
         },
@@ -328,7 +329,7 @@ with DAG(
         task_id="tl_companies_clear",
         python_callable=sparql_update,
         op_kwargs={"http_conn_id": "sparql_endpoint"},
-        templates_dict={"query": "CLEAR GRAPH <{{params.graph}}>"},
+        templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={
             "graph": "https://data.meemoo.be/graphs/tl_companies",
         },
@@ -338,7 +339,7 @@ with DAG(
         task_id="clear_org_graph",
         python_callable=sparql_update,
         op_kwargs={"http_conn_id": "sparql_endpoint"},
-        templates_dict={"query": "CLEAR GRAPH <{{params.graph}}>"},
+        templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={"graph": "https://data.meemoo.be/graphs/organizations"},
     )
 
@@ -388,6 +389,24 @@ with DAG(
     )
 
     m6 = PythonOperator(
+        task_id="tl_companies_contactpoints",
+        python_callable=sparql_update,
+        op_kwargs={
+            "query": "sparql/tl_companies_contactpoints.sparql",
+            "http_conn_id": "sparql_endpoint",
+        },
+    )
+
+    m7 = PythonOperator(
+        task_id="tl_companies_cps",
+        python_callable=sparql_update,
+        op_kwargs={
+            "query": "sparql/tl_companies_cps.sparql",
+            "http_conn_id": "sparql_endpoint",
+        },
+    )
+
+    m8 = PythonOperator(
         task_id="add_provenance",
         python_callable=sparql_update,
         templates_dict={
@@ -429,7 +448,7 @@ with DAG(
 
     e1 >> [m1, m4, m5]
     e2 >> m2
-    e3 >> m3
+    e3 >> [m3, m6, m7]
 
-    [e1, e2, e3] >> c >> m6
-    c >> [m1, m2, m3, m4, m5]
+    [e1, e2, e3] >> c >> m8
+    c >> [m1, m2, m3, m4, m5, m6 ,m7]

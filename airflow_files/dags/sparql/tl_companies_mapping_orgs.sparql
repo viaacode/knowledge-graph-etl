@@ -8,9 +8,8 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX graphs: <https://data.meemoo.be/graphs/>
 PREFIX source: <https://data.meemoo.be/sources/>
 
-#WITH graphs:organizations
+WITH graphs:organizations
 INSERT {
-    GRAPH graphs:organizations {
         ?org a org:Organization;
                 skos:prefLabel ?orgName;
                 foaf:homepage ?homepage;
@@ -27,7 +26,6 @@ INSERT {
             
         ?org meemoo:hasAccountManager ?am.
         ?am meemoo:isAccountManagerOf ?org.
-    }
 }
 USING graphs:tl_companies
 WHERE {
@@ -46,13 +44,6 @@ WHERE {
         ?o source:website ?website.
 
         BIND (URI(IF(STRSTARTS(?website, 'www'),CONCAT('http://',?website),?website)) AS ?homepage)
-    }
-
-    OPTIONAL {
-        ?o source:custom_fields [
-                source:label "2.2 - CP status";
-                source:value ?cpstatus 
-            ] .
     }
 
     # Address

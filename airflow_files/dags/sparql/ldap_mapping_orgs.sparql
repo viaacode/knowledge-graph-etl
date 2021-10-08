@@ -47,7 +47,7 @@ WHERE {
     source:o ?orid;
     source:description ?orgName .
 
-    BIND (URI(CONCAT('http://data.meemoo.be/organizations/', ?orid)) AS ?org)
+    BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?orid)) AS ?org)
 
     # Address
     ?o source:street ?streetAddress;

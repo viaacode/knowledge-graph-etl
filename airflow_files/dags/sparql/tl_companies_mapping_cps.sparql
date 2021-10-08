@@ -1,0 +1,34 @@
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX org:        <http://www.w3.org/ns/org#>
+PREFIX meemoo:     <https://meemoo.be/ns/org#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX schema: <https://schema.org/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+PREFIX graphs: <https://data.meemoo.be/graphs/>
+PREFIX source: <https://data.meemoo.be/sources/>
+
+WITH graphs:organizations
+INSERT {
+        ?org a meemoo:ContentPartner.
+}
+USING graphs:tl_companies
+WHERE {
+    # Organizations
+    ?o source:custom_fields [
+        source:value ?orid;
+        source:definition [
+            source:id "c3a10038-7a8e-0e96-bd4a-53e4668e6244"
+        ]
+    ],
+    # CP Status
+    [
+            source:value "ja";
+            source:definition [
+                source:id "f5c153c5-3c96-07e7-994d-cc70e1436247"
+            ]
+        ] .
+
+    BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?orid)) AS ?org)
+
+}
