@@ -8,11 +8,9 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX graphs: <https://data.meemoo.be/graphs/>
 PREFIX source: <https://data.meemoo.be/sources/>
 
-#WITH graphs:organizations
+WITH graphs:organizations
 INSERT {
-    GRAPH graphs:organizations {
-        ?org a meemoo:EducationalOrganization.      
-    } 
+    ?org a meemoo:EducationalOrganization.      
 }
 USING graphs:ldap_organizations
 WHERE {

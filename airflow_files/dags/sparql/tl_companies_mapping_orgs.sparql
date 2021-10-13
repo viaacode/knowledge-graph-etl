@@ -13,7 +13,9 @@ INSERT {
         ?org a org:Organization;
                 skos:prefLabel ?orgName;
                 foaf:homepage ?homepage;
-                org:hasPrimarySite ?site.
+                schema:logo ?logo;
+                org:hasPrimarySite ?site;
+                org:hasSite ?site.
                 
         ?site a org:Site;
             org:siteAddress ?siteAddress.
@@ -38,6 +40,7 @@ WHERE {
     ] .
     BIND (URI(CONCAT('https://data.meemoo.be/sites/', ?orid, '-primary')) AS ?site)
     BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?orid)) AS ?org)
+    BIND (URI(CONCAT('https://assets.viaa.be/images/', ?orid)) AS ?logo)
 
     OPTIONAL { ?o source:name ?orgName. }
     OPTIONAL { 

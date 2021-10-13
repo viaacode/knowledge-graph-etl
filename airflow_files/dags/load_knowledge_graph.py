@@ -182,45 +182,8 @@ with DAG(
 
         SparqlUpdateHook(method="POST", http_conn_id=http_conn_id).sparql_update(query)
 
-    # Turn all JSON data into RDF files
-    # e1 = PythonOperator(
-    #     task_id="ldap_organizations_extract_json",
-    #     python_callable=extract_json_as_rdf,
-    #     op_kwargs={
-    #         "schema": "public",
-    #         "table": "ldap_organizations",
-    #         "field": "ldap_content",
-    #         "filename": DIR + "/ldap_organizations.ttl",
-    #         "postgres_conn_id": "etl_harvest",
-    #         "namespace": SRC_NS,
-    #     },
-    # )
-
-    # e2 = PythonOperator(
-    #     task_id="tl_users_extract_json",
-    #     python_callable=extract_json_as_rdf,
-    #     op_kwargs={
-    #         "schema": "public",
-    #         "table": "tl_users",
-    #         "field": "tl_content",
-    #         "filename": DIR + "/tl_users.ttl",
-    #         "postgres_conn_id": "etl_harvest",
-    #         "namespace": SRC_NS,
-    #     },
-    # )
-
-    # e3 = PythonOperator(
-    #     task_id="tl_companies_extract_json",
-    #     python_callable=extract_json_as_rdf,
-    #     op_kwargs={
-    #         "schema": "public",
-    #         "table": "tl_companies",
-    #         "field": "tl_content",
-    #         "filename": DIR + "/tl_companies.ttl",
-    #         "postgres_conn_id": "etl_harvest",
-    #         "namespace": SRC_NS,
-    #     },
-    # )
+    # Turn all JSON data into RDF and insert
+    # TODO: using graph store protocol is probably better than SPARQL update INSERT statements
 
     e1 = PythonOperator(
         task_id="ldap_organizations_extract_json",
@@ -264,47 +227,7 @@ with DAG(
         },
     )
 
-    # load
-
-    # l1 = PythonOperator(
-    #     task_id="ldap_organizations_load",
-    #     python_callable=sparql_update,
-    #     op_kwargs={"http_conn_id": "sparql_endpoint"},
-    #     templates_dict={
-    #         "query": "LOAD <file://{{params.file}}> INTO GRAPH <{{params.graph}}>"
-    #     },
-    #     params={
-    #         "file": "/data/ldap_organizations.ttl",
-    #         "graph": "https://data.meemoo.be/graphs/ldap_organizations",
-    #     },
-    # )
-
-    # l2 = PythonOperator(
-    #     task_id="tl_users_load",
-    #     python_callable=sparql_update,
-    #     op_kwargs={"http_conn_id": "sparql_endpoint"},
-    #     templates_dict={
-    #         "query": "LOAD <file://{{params.file}}> INTO GRAPH <{{params.graph}}>"
-    #     },
-    #     params={
-    #         "file": "/data/tl_users.ttl",
-    #         "graph": "https://data.meemoo.be/graphs/tl_users",
-    #     },
-    # )
-
-    # l3 = PythonOperator(
-    #     task_id="tl_companies_load",
-    #     python_callable=sparql_update,
-    #     op_kwargs={"http_conn_id": "sparql_endpoint"},
-    #     templates_dict={
-    #         "query": "LOAD <file://{{params.file}}> INTO GRAPH <{{params.graph}}>"
-    #     },
-    #     params={
-    #         "file": "/data/tl_companies.ttl",
-    #         "graph": "https://data.meemoo.be/graphs/tl_companies",
-    #     },
-    # )
-
+    # clear graphs
     c1 = PythonOperator(
         task_id="ldap_organizations_clear",
         python_callable=sparql_update,
@@ -343,8 +266,9 @@ with DAG(
         params={"graph": "https://data.meemoo.be/graphs/organizations"},
     )
 
+    # map by running sparql
     m1 = PythonOperator(
-        task_id="ldap_mapping_orgs",
+        task_id="map_ldap_orgs",
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/ldap_mapping_orgs.sparql",
@@ -353,16 +277,16 @@ with DAG(
     )
 
     m2 = PythonOperator(
-        task_id="tl_users_mapping_1",
+        task_id="map_tl_users",
         python_callable=sparql_update,
         op_kwargs={
-            "query": "sparql/tl_users_mapping_1.sparql",
+            "query": "sparql/tl_users_mapping.sparql",
             "http_conn_id": "sparql_endpoint",
         },
     )
 
     m3 = PythonOperator(
-        task_id="tl_companies_mapping_orgs",
+        task_id="map_tl_companies_orgs",
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/tl_companies_mapping_orgs.sparql",
@@ -371,7 +295,7 @@ with DAG(
     )
 
     m4 = PythonOperator(
-        task_id="ldap_mapping_schools",
+        task_id="map_ldap_schools",
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/ldap_mapping_schools.sparql",
@@ -380,7 +304,7 @@ with DAG(
     )
 
     m5 = PythonOperator(
-        task_id="ldap_mapping_eduorg",
+        task_id="map_ldap_eduorg",
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/ldap_mapping_eduorg.sparql",
@@ -389,24 +313,33 @@ with DAG(
     )
 
     m6 = PythonOperator(
-        task_id="tl_companies_contactpoints",
+        task_id="map_tl_companies_contactpoints",
         python_callable=sparql_update,
         op_kwargs={
-            "query": "sparql/tl_companies_contactpoints.sparql",
+            "query": "sparql/tl_companies_mapping_contactpoints.sparql",
             "http_conn_id": "sparql_endpoint",
         },
     )
 
     m7 = PythonOperator(
-        task_id="tl_companies_cps",
+        task_id="map_tl_companies_cps",
         python_callable=sparql_update,
         op_kwargs={
-            "query": "sparql/tl_companies_cps.sparql",
+            "query": "sparql/tl_companies_mapping_cps.sparql",
             "http_conn_id": "sparql_endpoint",
         },
     )
 
     m8 = PythonOperator(
+        task_id="insert_mam_tenants",
+        python_callable=sparql_update,
+        op_kwargs={
+            "query": "sparql/mam_tenants.sparql",
+            "http_conn_id": "sparql_endpoint",
+        },
+    )
+
+    m9 = PythonOperator(
         task_id="add_provenance",
         python_callable=sparql_update,
         templates_dict={
@@ -450,5 +383,5 @@ with DAG(
     e2 >> m2
     e3 >> [m3, m6, m7]
 
-    [e1, e2, e3] >> c >> m8
-    c >> [m1, m2, m3, m4, m5, m6 ,m7]
+    [e1, e2, e3] >> c >> m9
+    c >> [m1, m2, m3, m4, m5, m6 , m7, m8]
