@@ -11,6 +11,7 @@ PREFIX source: <https://data.meemoo.be/sources/>
 WITH graphs:organizations
 INSERT {
         ?org a org:Organization;
+                schema:identifier ?orid;
                 skos:altLabel ?orgName;
                 foaf:homepage ?homepage;
                 org:hasUnit ?unit;

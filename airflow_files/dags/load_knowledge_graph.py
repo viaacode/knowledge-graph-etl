@@ -331,15 +331,33 @@ with DAG(
     )
 
     m8 = PythonOperator(
-        task_id="insert_mam_tenants",
+        task_id="map_tl_companies_cps",
         python_callable=sparql_update,
         op_kwargs={
-            "query": "sparql/mam_tenants.sparql",
+            "query": "sparql/tl_companies_mapping_classification.sparql",
             "http_conn_id": "sparql_endpoint",
         },
     )
 
     m9 = PythonOperator(
+        task_id="map_tl_companies_cps",
+        python_callable=sparql_update,
+        op_kwargs={
+            "query": "sparql/ldap_mapping_cps.sparql",
+            "http_conn_id": "sparql_endpoint",
+        },
+    )
+
+    mt = PythonOperator(
+        task_id="insert_mam_tenants",
+        python_callable=sparql_update,
+        op_kwargs={
+            "query": "sparql/mam_tenants_prd.sparql",
+            "http_conn_id": "sparql_endpoint",
+        },
+    )
+
+    mp = PythonOperator(
         task_id="add_provenance",
         python_callable=sparql_update,
         templates_dict={
@@ -379,9 +397,9 @@ with DAG(
     c2 >> e2
     c3 >> e3
 
-    e1 >> [m1, m4, m5]
+    e1 >> [m1, m4, m5, m9]
     e2 >> m2
-    e3 >> [m3, m6, m7]
+    e3 >> [m3, m6, m7, m8]
 
-    [e1, e2, e3] >> c >> m9
-    c >> [m1, m2, m3, m4, m5, m6 , m7, m8]
+    [e1, e2, e3] >> c >> mp
+    c >> [m1, m2, m3, m4, m5, m6 , m7, m8, m9, mt]
