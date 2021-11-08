@@ -10,11 +10,18 @@ PREFIX source: <https://data.meemoo.be/sources/>
 
 WITH graphs:organizations
 INSERT {
-    ?org schema:contactPoint ?contact.
+    ?org schema:contactPoint ?contact, ?contact_ontsluting;
+         meemoo:requestForm ?aanvraagformulier.
+
     ?contact a schema:ContactPoint;
             schema:contactType ?etype;
             schema:email ?email;
             schema:telephone ?telnumber.
+    
+   ?contact_ontsluiting a schema:ContactPoint;
+            schema:contactType "ontsluiting";
+            schema:email ?email_ontsluiting;
+            schema:telephone ?telnumber_ontsluiting.            
 }
 USING graphs:tl_companies
 WHERE {
@@ -33,6 +40,39 @@ WHERE {
         source:type ?ttype;
         source:number ?telnumber
     ].
+
     BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?orid)) AS ?org)
-    BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?orid, '-', ?etype)) AS ?contact)   
+    BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?orid, '-', ?etype)) AS ?contact)  
+    
+    BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?orid, '-ontsluiting')) AS ?contact_ontsluiting)   
+
+    # E-mail Ontsluiting
+    OPTIONAL {
+        ?o source:custom_fields [
+            source:value ?email_ontsluiting;
+            source:definition [
+                source:id "1b8878e5-4aed-0aa7-8055-63b8f8165afa"
+            ]
+        ]
+    }
+    # Telefoon Ontsluiting
+    OPTIONAL {
+        ?o source:custom_fields [
+            source:value ?telnumber_ontsluiting;
+            source:definition [
+                source:id "bbe4eb80-7f68-022e-b856-60c3e2665af9"
+            ]
+        ]
+    }
+
+    # Link aanvraagformulier
+    OPTIONAL {
+        ?o source:custom_fields [
+            source:value ?aanvraagformulier;
+            source:definition [
+                source:id "e02a506d-7457-01e1-b052-4ae35b565afb"
+            ]
+        ]
+    }
+
 }

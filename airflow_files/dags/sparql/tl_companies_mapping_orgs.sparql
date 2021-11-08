@@ -4,6 +4,7 @@ PREFIX meemoo:     <https://meemoo.be/ns/org#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX schema: <https://schema.org/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX dct: <http://purl.org/dc/terms/>
 
 PREFIX graphs: <https://data.meemoo.be/graphs/>
 PREFIX source: <https://data.meemoo.be/sources/>
@@ -15,6 +16,7 @@ INSERT {
                 skos:prefLabel ?orgName;
                 foaf:homepage ?homepage;
                 schema:logo ?logo;
+                dct:description ?desc;
                 org:hasPrimarySite ?site;
                 org:hasSite ?site.
                 
@@ -65,10 +67,23 @@ WHERE {
         BIND (URI(CONCAT('https://data.meemoo.be/locations/', MD5(CONCAT(?streetAddress, ?postalCode, ?city)))) AS ?siteAddress)
     }
 
-    # Accountmanagers
-    ?o source:responsible_user [
-        source:id ?amid
-    ].
+    # CP - Omschrijving (200 tek.)
+    OPTIONAL {
+        ?o source:custom_fields [
+            source:value ?omschrijving_field;
+            source:definition [
+                source:id "664d253e-0e54-0c94-b455-02ae8e265afc"
+            ]
+        ]
+        BIND (STRLANG(?omschrijving_field, "nl") AS ?desc)
+    }
 
-    BIND (URI(CONCAT('https://data.meemoo.be/people/', ?amid)) AS ?am) 
+    # Accountmanagers
+    OPTIONAL {
+        ?o source:responsible_user [
+            source:id ?amid
+        ].
+
+        BIND (URI(CONCAT('https://data.meemoo.be/people/', ?amid)) AS ?am) 
+    }
 }

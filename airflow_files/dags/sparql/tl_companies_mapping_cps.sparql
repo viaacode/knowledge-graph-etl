@@ -23,11 +23,11 @@ WHERE {
     ],
     # CP Status
     [
-            source:value "ja";
-            source:definition [
-                source:id "f5c153c5-3c96-07e7-994d-cc70e1436247"
-            ]
-        ] .
+        source:value "ja";
+        source:definition [
+            source:id "f5c153c5-3c96-07e7-994d-cc70e1436247"
+        ]
+    ] .
 
     BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?orid)) AS ?org)
 
