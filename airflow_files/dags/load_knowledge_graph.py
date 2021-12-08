@@ -184,6 +184,8 @@ with DAG(
 
     # Turn all JSON data into RDF and insert
     # TODO: using graph store protocol is probably better than SPARQL update INSERT statements
+    http_conn_id = "{{ dag_run.conf['http_conn_id'] if dag_run.conf['http_conn_id'] }}"
+    postgres_conn_id = "{{ dag_run.conf['postgres_conn_id'] if dag_run.conf['postgres_conn_id'] }}"
 
     e1 = PythonOperator(
         task_id="ldap_organizations_extract_json",
@@ -192,8 +194,8 @@ with DAG(
             "schema": "public",
             "table": "ldap_organizations",
             "field": "ldap_content",
-            "postgres_conn_id": "etl_harvest",
-            "http_conn_id": "sparql_endpoint",
+            "postgres_conn_id": postgres_conn_id,
+            "http_conn_id": http_conn_id,
             "namespace": SRC_NS,
             "graph": "https://data.meemoo.be/graphs/ldap_organizations",
         },
@@ -206,8 +208,8 @@ with DAG(
             "schema": "public",
             "table": "tl_users",
             "field": "tl_content",
-            "postgres_conn_id": "etl_harvest",
-            "http_conn_id": "sparql_endpoint",
+            "postgres_conn_id": postgres_conn_id,
+            "http_conn_id": http_conn_id,
             "namespace": SRC_NS,
             "graph": "https://data.meemoo.be/graphs/tl_users",
         },
@@ -220,8 +222,8 @@ with DAG(
             "schema": "public",
             "table": "tl_companies",
             "field": "tl_content",
-            "postgres_conn_id": "etl_harvest",
-            "http_conn_id": "sparql_endpoint",
+            "postgres_conn_id": postgres_conn_id,
+            "http_conn_id": http_conn_id,
             "namespace": SRC_NS,
             "graph": "https://data.meemoo.be/graphs/tl_companies",
         },
@@ -231,7 +233,7 @@ with DAG(
     c1 = PythonOperator(
         task_id="ldap_organizations_clear",
         python_callable=sparql_update,
-        op_kwargs={"http_conn_id": "sparql_endpoint"},
+        op_kwargs={"http_conn_id": http_conn_id},
         templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={
             "graph": "https://data.meemoo.be/graphs/ldap_organizations",
@@ -241,7 +243,7 @@ with DAG(
     c2 = PythonOperator(
         task_id="tl_users_clear",
         python_callable=sparql_update,
-        op_kwargs={"http_conn_id": "sparql_endpoint"},
+        op_kwargs={"http_conn_id": http_conn_id},
         templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={
             "graph": "https://data.meemoo.be/graphs/tl_users",
@@ -251,7 +253,7 @@ with DAG(
     c3 = PythonOperator(
         task_id="tl_companies_clear",
         python_callable=sparql_update,
-        op_kwargs={"http_conn_id": "sparql_endpoint"},
+        op_kwargs={"http_conn_id": http_conn_id},
         templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={
             "graph": "https://data.meemoo.be/graphs/tl_companies",
@@ -261,7 +263,7 @@ with DAG(
     c = PythonOperator(
         task_id="clear_org_graph",
         python_callable=sparql_update,
-        op_kwargs={"http_conn_id": "sparql_endpoint"},
+        op_kwargs={"http_conn_id": http_conn_id},
         templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={"graph": "https://data.meemoo.be/graphs/organizations"},
     )
@@ -272,7 +274,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/ldap_mapping_orgs.sparql",
-            "http_conn_id": "sparql_endpoint",
+            "http_conn_id": http_conn_id,
         },
     )
 
@@ -281,7 +283,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/tl_users_mapping.sparql",
-            "http_conn_id": "sparql_endpoint",
+            "http_conn_id": http_conn_id,
         },
     )
 
@@ -290,7 +292,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/tl_companies_mapping_orgs.sparql",
-            "http_conn_id": "sparql_endpoint",
+            "http_conn_id": http_conn_id,
         },
     )
 
@@ -299,7 +301,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/ldap_mapping_schools.sparql",
-            "http_conn_id": "sparql_endpoint",
+            "http_conn_id": http_conn_id,
         },
     )
 
@@ -308,7 +310,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/ldap_mapping_eduorg.sparql",
-            "http_conn_id": "sparql_endpoint",
+            "http_conn_id": http_conn_id,
         },
     )
 
@@ -317,7 +319,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/tl_companies_mapping_contactpoints.sparql",
-            "http_conn_id": "sparql_endpoint",
+            "http_conn_id": http_conn_id,
         },
     )
 
@@ -326,25 +328,25 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/tl_companies_mapping_cps.sparql",
-            "http_conn_id": "sparql_endpoint",
+            "http_conn_id": http_conn_id,
         },
     )
 
     m8 = PythonOperator(
-        task_id="map_tl_companies_cps",
+        task_id="map_tl_companies_classification",
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/tl_companies_mapping_classification.sparql",
-            "http_conn_id": "sparql_endpoint",
+            "http_conn_id": http_conn_id,
         },
     )
 
     m9 = PythonOperator(
-        task_id="map_tl_companies_cps",
+        task_id="map_ldap_cps",
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/ldap_mapping_cps.sparql",
-            "http_conn_id": "sparql_endpoint",
+            "http_conn_id": http_conn_id,
         },
     )
 
@@ -353,7 +355,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/mam_tenants_prd.sparql",
-            "http_conn_id": "sparql_endpoint",
+            "http_conn_id": http_conn_id,
         },
     )
 
@@ -390,7 +392,7 @@ with DAG(
             "result": "https://data.meemoo.be/graphs/organizations",
             "graph": "https://data.meemoo.be/graphs/provenance",
         },
-        op_kwargs={"http_conn_id": "sparql_endpoint"},
+        op_kwargs={"http_conn_id": http_conn_id},
     )
 
     c1 >> e1
