@@ -1,3 +1,4 @@
+import json
 import os.path
 from datetime import timedelta
 from urllib.parse import quote_plus
@@ -8,12 +9,15 @@ from airflow.models import Variable
 
 # Operators; we need this to operate!
 from airflow.operators.python_operator import PythonOperator
+from airflow.providers.http.operators.http import SimpleHttpOperator
+from airflow.providers.http.sensors.http import HttpSensor
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.dates import days_ago
-from sparql_update import SparqlUpdateHook
-from parse_functions import parse_json
 from psycopg2 import sql
 from rdflib import Graph, Namespace
+
+from parse_functions import parse_json
+from sparql_update import SparqlUpdateHook
 
 # These args will get passed on to each operator
 # You can override them on a per-task basis during operator initialization
@@ -25,23 +29,16 @@ default_args = {
     "email_on_retry": False,
     "retries": 0,
     "retry_delay": timedelta(minutes=5),
-    # 'queue': 'bash_queue',
-    # 'pool': 'backfill',
-    # 'priority_weight': 10,
-    # 'end_date': datetime(2016, 1, 1),
-    # 'wait_for_downstream': False,
-    # 'dag': dag,
-    # 'sla': timedelta(hours=2),
-    # 'execution_timeout': timedelta(seconds=300),
-    # 'on_failure_callback': some_function,
-    # 'on_success_callback': some_other_function,
-    # 'on_retry_callback': another_function,
-    # 'sla_miss_callback': yet_another_function,
-    # 'trigger_rule': 'all_success'
 }
 
 DIR = Variable.get("data_path", "./files")
 SRC_NS = Variable.get("source_ns", "https://data.meemoo.be/sources/")
+
+teamleader2db_conn_id = Variable.get("teamleader2db_conn_id", "teamleader2db-qas")
+ldap2db_conn_id = Variable.get("ldap2db_conn_id", "ldap2db-qas")
+endpoint_conn_id = Variable.get("endpoint_conn_id", "stardog-qas")
+postgres_conn_id = Variable.get("postgres_conn_id", "etl-harvest-qas")
+full_sync = Variable.get("full_sync", False, True)
 
 with DAG(
     "knowledge-graph-etl",
@@ -152,7 +149,6 @@ with DAG(
         cursor = _get_cursor(postgres_conn_id, schema, table, field)
         hook = SparqlUpdateHook(method="POST", http_conn_id=http_conn_id)
 
-        
         for record in cursor:
             triples_gen = parse_json(record[0], namespace=Namespace(namespace))
             hook.insert(triples_gen, graph)
@@ -184,8 +180,64 @@ with DAG(
 
     # Turn all JSON data into RDF and insert
     # TODO: using graph store protocol is probably better than SPARQL update INSERT statements
-    http_conn_id = "{{ dag_run.conf['http_conn_id'] if dag_run.conf['http_conn_id'] }}"
-    postgres_conn_id = "{{ dag_run.conf['postgres_conn_id'] if dag_run.conf['postgres_conn_id'] }}"
+
+    h0 = HttpSensor(
+        task_id="teamleader2db_check",
+        http_conn_id=teamleader2db_conn_id,
+        endpoint="",
+        request_params={},
+        response_check=lambda response: not response.json()["job_running"],
+        poke_interval=5,
+    )
+
+    h1 = SimpleHttpOperator(
+        task_id="teamleader2db_run",
+        http_conn_id=teamleader2db_conn_id,
+        method="POST",
+        endpoint="",
+        data=json.dumps({"full_sync": full_sync}),
+        headers={"Content-Type": "application/json"},
+        response_check=lambda response: response.json()["status"]
+        == "Teamleader sync started",
+    )
+
+    h2 = HttpSensor(
+        task_id="teamleader2db_run_check",
+        http_conn_id=teamleader2db_conn_id,
+        endpoint="",
+        request_params={},
+        response_check=lambda response: not response.json()["job_running"],
+        poke_interval=5,
+    )
+
+    h3 = HttpSensor(
+        task_id="ldap2db_check",
+        http_conn_id=ldap2db_conn_id,
+        endpoint="",
+        request_params={},
+        response_check=lambda response: not response.json()["job_running"],
+        poke_interval=5,
+    )
+
+    h4 = SimpleHttpOperator(
+        task_id="ldap2db_run",
+        http_conn_id=ldap2db_conn_id,
+        method="POST",
+        endpoint="",
+        data=json.dumps({"full_sync": full_sync}),
+        headers={"Content-Type": "application/json"},
+        response_check=lambda response: response.json()["status"]
+        == "DEEWEE sync started",
+    )
+
+    h5 = HttpSensor(
+        task_id="ldap2db_run_check",
+        http_conn_id=ldap2db_conn_id,
+        endpoint="",
+        request_params={},
+        response_check=lambda response: not response.json()["job_running"],
+        poke_interval=5,
+    )
 
     e1 = PythonOperator(
         task_id="ldap_organizations_extract_json",
@@ -195,7 +247,7 @@ with DAG(
             "table": "ldap_organizations",
             "field": "ldap_content",
             "postgres_conn_id": postgres_conn_id,
-            "http_conn_id": http_conn_id,
+            "http_conn_id": endpoint_conn_id,
             "namespace": SRC_NS,
             "graph": "https://data.meemoo.be/graphs/ldap_organizations",
         },
@@ -209,7 +261,7 @@ with DAG(
             "table": "tl_users",
             "field": "tl_content",
             "postgres_conn_id": postgres_conn_id,
-            "http_conn_id": http_conn_id,
+            "http_conn_id": endpoint_conn_id,
             "namespace": SRC_NS,
             "graph": "https://data.meemoo.be/graphs/tl_users",
         },
@@ -223,7 +275,7 @@ with DAG(
             "table": "tl_companies",
             "field": "tl_content",
             "postgres_conn_id": postgres_conn_id,
-            "http_conn_id": http_conn_id,
+            "http_conn_id": endpoint_conn_id,
             "namespace": SRC_NS,
             "graph": "https://data.meemoo.be/graphs/tl_companies",
         },
@@ -233,7 +285,7 @@ with DAG(
     c1 = PythonOperator(
         task_id="ldap_organizations_clear",
         python_callable=sparql_update,
-        op_kwargs={"http_conn_id": http_conn_id},
+        op_kwargs={"http_conn_id": endpoint_conn_id},
         templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={
             "graph": "https://data.meemoo.be/graphs/ldap_organizations",
@@ -243,7 +295,7 @@ with DAG(
     c2 = PythonOperator(
         task_id="tl_users_clear",
         python_callable=sparql_update,
-        op_kwargs={"http_conn_id": http_conn_id},
+        op_kwargs={"http_conn_id": endpoint_conn_id},
         templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={
             "graph": "https://data.meemoo.be/graphs/tl_users",
@@ -253,7 +305,7 @@ with DAG(
     c3 = PythonOperator(
         task_id="tl_companies_clear",
         python_callable=sparql_update,
-        op_kwargs={"http_conn_id": http_conn_id},
+        op_kwargs={"http_conn_id": endpoint_conn_id},
         templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={
             "graph": "https://data.meemoo.be/graphs/tl_companies",
@@ -263,7 +315,7 @@ with DAG(
     c = PythonOperator(
         task_id="clear_org_graph",
         python_callable=sparql_update,
-        op_kwargs={"http_conn_id": http_conn_id},
+        op_kwargs={"http_conn_id": endpoint_conn_id},
         templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={"graph": "https://data.meemoo.be/graphs/organizations"},
     )
@@ -274,7 +326,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/ldap_mapping_orgs.sparql",
-            "http_conn_id": http_conn_id,
+            "http_conn_id": endpoint_conn_id,
         },
     )
 
@@ -283,7 +335,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/tl_users_mapping.sparql",
-            "http_conn_id": http_conn_id,
+            "http_conn_id": endpoint_conn_id,
         },
     )
 
@@ -292,7 +344,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/tl_companies_mapping_orgs.sparql",
-            "http_conn_id": http_conn_id,
+            "http_conn_id": endpoint_conn_id,
         },
     )
 
@@ -301,7 +353,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/ldap_mapping_schools.sparql",
-            "http_conn_id": http_conn_id,
+            "http_conn_id": endpoint_conn_id,
         },
     )
 
@@ -310,7 +362,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/ldap_mapping_eduorg.sparql",
-            "http_conn_id": http_conn_id,
+            "http_conn_id": endpoint_conn_id,
         },
     )
 
@@ -319,7 +371,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/tl_companies_mapping_contactpoints.sparql",
-            "http_conn_id": http_conn_id,
+            "http_conn_id": endpoint_conn_id,
         },
     )
 
@@ -328,7 +380,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/tl_companies_mapping_cps.sparql",
-            "http_conn_id": http_conn_id,
+            "http_conn_id": endpoint_conn_id,
         },
     )
 
@@ -337,7 +389,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/tl_companies_mapping_classification.sparql",
-            "http_conn_id": http_conn_id,
+            "http_conn_id": endpoint_conn_id,
         },
     )
 
@@ -346,7 +398,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/ldap_mapping_cps.sparql",
-            "http_conn_id": http_conn_id,
+            "http_conn_id": endpoint_conn_id,
         },
     )
 
@@ -355,7 +407,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={
             "query": "sparql/mam_tenants_prd.sparql",
-            "http_conn_id": http_conn_id,
+            "http_conn_id": endpoint_conn_id,
         },
     )
 
@@ -392,8 +444,11 @@ with DAG(
             "result": "https://data.meemoo.be/graphs/organizations",
             "graph": "https://data.meemoo.be/graphs/provenance",
         },
-        op_kwargs={"http_conn_id": http_conn_id},
+        op_kwargs={"http_conn_id": endpoint_conn_id},
     )
+
+    h0 >> h1 >> h2 >> [c1, c2, c3]
+    h3 >> h4 >> h5 >> [c1, c2, c3]
 
     c1 >> e1
     c2 >> e2
@@ -404,4 +459,4 @@ with DAG(
     e3 >> [m3, m6, m7, m8]
 
     [e1, e2, e3] >> c >> mp
-    c >> [m1, m2, m3, m4, m5, m6 , m7, m8, m9, mt]
+    c >> [m1, m2, m3, m4, m5, m6, m7, m8, m9, mt]
