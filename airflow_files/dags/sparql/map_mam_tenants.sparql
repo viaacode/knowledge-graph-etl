@@ -1,0 +1,8 @@
+PREFIX mh:     <https://meemoo.be/ns/mh#>
+
+CONSTRUCT {
+    ?org mh:label ?Name      
+}
+WHERE {
+  BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?ExternalId)) AS ?org)
+}

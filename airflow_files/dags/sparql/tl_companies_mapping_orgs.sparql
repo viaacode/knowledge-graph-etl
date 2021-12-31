@@ -33,12 +33,15 @@ INSERT {
         ?am meemoo:isAccountManagerOf ?org.
 }
 USING graphs:tl_companies
+USING graphs:tl_custom_fields
 WHERE {
     # Organizations
+    ?cf_orid source:id ?cf_orid_id; source:label "5.1 - OR-ID" . 
     ?o source:custom_fields [
         source:value ?orid;
         source:definition [
-            source:id "c3a10038-7a8e-0e96-bd4a-53e4668e6244"
+            #source:id "c3a10038-7a8e-0e96-bd4a-53e4668e6244"
+            source:id ?cf_orid_id
         ]
     ] .
     BIND (URI(CONCAT('https://data.meemoo.be/sites/', ?orid, '-primary')) AS ?site)
@@ -69,10 +72,11 @@ WHERE {
 
     # CP - Omschrijving (200 tek.)
     OPTIONAL {
+        ?cf_omsch source:id ?cf_omsch_id; source:label "CP - Omschrijving (200 tek.)" .
         ?o source:custom_fields [
             source:value ?omschrijving_field;
             source:definition [
-                source:id "664d253e-0e54-0c94-b455-02ae8e265afc"
+                source:id ?cf_omsch_id #"664d253e-0e54-0c94-b455-02ae8e265afc"
             ]
         ]
         BIND (STRLANG(?omschrijving_field, "nl") AS ?desc)

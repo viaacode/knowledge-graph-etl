@@ -24,12 +24,15 @@ INSERT {
             schema:telephone ?telnumber_ontsluiting.            
 }
 USING graphs:tl_companies
+USING graphs:tl_custom_fields
 WHERE {
     # Organizations
+    ?cf_orid source:id ?cf_orid_id; source:label "5.1 - OR-ID" . 
     ?o source:custom_fields [
         source:value ?orid;
         source:definition [
-            source:id "c3a10038-7a8e-0e96-bd4a-53e4668e6244"
+            #source:id "c3a10038-7a8e-0e96-bd4a-53e4668e6244"
+            source:id ?cf_orid_id
         ]
     ];
     source:emails [
@@ -48,29 +51,35 @@ WHERE {
 
     # E-mail Ontsluiting
     OPTIONAL {
+        ?cf_email source:id ?cf_email_id; source:label "E-mail Ontsluiting" .
         ?o source:custom_fields [
             source:value ?email_ontsluiting;
             source:definition [
-                source:id "1b8878e5-4aed-0aa7-8055-63b8f8165afa"
+                #source:id "1b8878e5-4aed-0aa7-8055-63b8f8165afa"
+                source:id ?cf_email_id
             ]
         ]
     }
     # Telefoon Ontsluiting
     OPTIONAL {
+        ?cf_tel source:id ?cf_tel_id; source:label "Telefoon Ontsluiting" .
         ?o source:custom_fields [
             source:value ?telnumber_ontsluiting;
             source:definition [
-                source:id "bbe4eb80-7f68-022e-b856-60c3e2665af9"
+                #source:id "bbe4eb80-7f68-022e-b856-60c3e2665af9"
+                source:id ?cf_tel_id
             ]
         ]
     }
 
     # Link aanvraagformulier
     OPTIONAL {
+        ?cf_form source:id ?cf_form_id; source:label "Link aanvraagformulier" .
         ?o source:custom_fields [
             source:value ?aanvraagformulier;
             source:definition [
-                source:id "e02a506d-7457-01e1-b052-4ae35b565afb"
+                #source:id "e02a506d-7457-01e1-b052-4ae35b565afb"
+                source:id ?cf_form_id
             ]
         ]
     }

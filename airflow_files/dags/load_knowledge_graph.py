@@ -9,6 +9,7 @@ from airflow.models import Variable
 
 # Operators; we need this to operate!
 from airflow.operators.python_operator import PythonOperator
+from airflow.operators.bash_operator import BashOperator
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.providers.http.sensors.http import HttpSensor
 from airflow.providers.postgres.hooks.postgres import PostgresHook
@@ -38,6 +39,7 @@ teamleader2db_conn_id = Variable.get("teamleader2db_conn_id", "teamleader2db-qas
 ldap2db_conn_id = Variable.get("ldap2db_conn_id", "ldap2db-qas")
 endpoint_conn_id = Variable.get("endpoint_conn_id", "stardog-qas")
 postgres_conn_id = Variable.get("postgres_conn_id", "etl-harvest-qas")
+env = Variable.get("env", "qas")
 full_sync = Variable.get("full_sync", False, True)
 
 with DAG(
@@ -178,8 +180,22 @@ with DAG(
 
         SparqlUpdateHook(method="POST", http_conn_id=http_conn_id).sparql_update(query)
 
+    def insert_file(ds, **kwargs):
+        """Opens a file and inserts the data."""
+
+        http_conn_id = kwargs.get("http_conn_id")
+        filename = kwargs.get("filename")
+        graph = kwargs.get("graph", None)
+
+        SparqlUpdateHook(method="POST", http_conn_id=http_conn_id).insert_file(filename, graph)
+
     # Turn all JSON data into RDF and insert
     # TODO: using graph store protocol is probably better than SPARQL update INSERT statements
+
+    # t1 = BashOperator(
+    #     task_id='mam_tenant',
+    #     bash_command='tarql-1.2/bin/tarql --ntriples sparql/map_mam_tenants.sparql /files/orgs-{}.csv > /files/mam_tenants_{}.nt'.format(env, env),
+    # )
 
     h0 = HttpSensor(
         task_id="teamleader2db_check",
@@ -281,6 +297,20 @@ with DAG(
         },
     )
 
+    e4 = PythonOperator(
+        task_id="tl_custom_fields_extract_json",
+        python_callable=extract_and_insert,
+        op_kwargs={
+            "schema": "public",
+            "table": "tl_custom_fields",
+            "field": "tl_content",
+            "postgres_conn_id": postgres_conn_id,
+            "http_conn_id": endpoint_conn_id,
+            "namespace": SRC_NS,
+            "graph": "https://data.meemoo.be/graphs/tl_custom_fields",
+        },
+    )
+
     # clear graphs
     c1 = PythonOperator(
         task_id="ldap_organizations_clear",
@@ -309,6 +339,16 @@ with DAG(
         templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={
             "graph": "https://data.meemoo.be/graphs/tl_companies",
+        },
+    )
+
+    c4 = PythonOperator(
+        task_id="tl_custom_fields_clear",
+        python_callable=sparql_update,
+        op_kwargs={"http_conn_id": endpoint_conn_id},
+        templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
+        params={
+            "graph": "https://data.meemoo.be/graphs/tl_custom_fields",
         },
     )
 
@@ -402,12 +442,22 @@ with DAG(
         },
     )
 
-    mt = PythonOperator(
-        task_id="insert_mam_tenants",
+    m10 = PythonOperator(
+        task_id="map_tl_companies_overlay",
         python_callable=sparql_update,
         op_kwargs={
-            "query": "sparql/mam_tenants_prd.sparql",
+            "query": "sparql/tl_companies_mapping_overlay.sparql",
             "http_conn_id": endpoint_conn_id,
+        },
+    )
+
+    mt = PythonOperator(
+        task_id="insert_mam_tenants",
+        python_callable=insert_file,
+        op_kwargs={
+            "filename": "/files/mam_tenants_{}.nt".format(env),
+            "http_conn_id": endpoint_conn_id,
+            "graph": "https://data.meemoo.be/graphs/tl_companies",
         },
     )
 
@@ -447,16 +497,19 @@ with DAG(
         op_kwargs={"http_conn_id": endpoint_conn_id},
     )
 
-    h0 >> h1 >> h2 >> [c1, c2, c3]
-    h3 >> h4 >> h5 >> [c1, c2, c3]
+    h0 >> h1 >> h2 >> [c2, c3, c4]
+    h3 >> h4 >> h5 >> c1
+    #t1 >> mt
 
     c1 >> e1
     c2 >> e2
     c3 >> e3
+    c4 >> e4
 
     e1 >> [m1, m4, m5, m9]
     e2 >> m2
-    e3 >> [m3, m6, m7, m8]
+    e3 >> [m3, m6, m7, m8, m10]
+    e4 >> [m3, m6, m7, m8, m10]
 
-    [e1, e2, e3] >> c >> mp
-    c >> [m1, m2, m3, m4, m5, m6, m7, m8, m9, mt]
+    [e1, e2, e3, e4] >> c >> mp
+    c >> [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, mt]

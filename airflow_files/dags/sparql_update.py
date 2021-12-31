@@ -22,6 +22,7 @@ from airflow.providers.http.operators.http import HttpHook
 from requests.auth import HTTPBasicAuth, HTTPDigestAuth
 from SPARQLWrapper import DIGEST, SPARQLWrapper, POST, GET
 from SPARQLWrapper.Wrapper import BASIC
+from rdflib import Graph
 
 AUTH_TYPES = {HTTPBasicAuth: BASIC, HTTPDigestAuth: DIGEST}
 METHODS = {"GET": GET, "POST": POST}
@@ -105,6 +106,9 @@ class SparqlUpdateHook(HttpHook):
         self.sparql.resetQuery()
 
     def insert(self, triples, graph=None):
+        if not len(triples) > 0:
+            return
+
         query = "INSERT DATA {\n"
 
         if graph is not None:
@@ -119,6 +123,15 @@ class SparqlUpdateHook(HttpHook):
             query += "}"
 
         self.sparql_update(query)
+
+    def insert_file(self, filename, graph=None):
+        """Opens a file and inserts the data."""
+
+        g = Graph()
+        g.parse(filename)
+        print(filename)
+
+        self.insert(g,graph)
 
     @staticmethod
     def to_ntriples(t, namespace_manager=None):

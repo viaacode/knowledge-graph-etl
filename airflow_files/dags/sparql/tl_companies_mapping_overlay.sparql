@@ -10,27 +10,37 @@ PREFIX source: <https://data.meemoo.be/sources/>
 
 WITH graphs:organizations
 INSERT {
-        ?org a meemoo:ContentPartner.
+        ?org meemoo:allowsOverlay ?overlay;
+             meemoo:allowsBZT ?bzt
 }
 USING graphs:tl_companies
 USING graphs:tl_custom_fields
 WHERE {
     # Organizations
     ?cf_orid source:id ?cf_orid_id; source:label "5.1 - OR-ID" . 
-    ?cf_status source:id ?cf_status_id; source:label "CP Status" . 
+    ?cf_overlay source:id ?cf_overlay_id; source:label "4.2 - Overlay" .
+    ?cf_bzt source:id ?cf_bzt_id; source:label "4.1 - Bezoekertool" .
+
     ?o source:custom_fields [
         source:value ?orid;
         source:definition [
-            #source:id "c3a10038-7a8e-0e96-bd4a-53e4668e6244"
-            source:id ?cf_orid_id
+            source:id ?cf_orid_id #"c3a10038-7a8e-0e96-bd4a-53e4668e6244"
         ]
     ],
-    # CP Status
+    # 4.2 - Overlay
     [
-        source:value "ja";
+        #"true"^^<http://www.w3.org/2001/XMLSchema#boolean>
+        source:value ?overlay;
         source:definition [
-            #source:id "f5c153c5-3c96-07e7-994d-cc70e1436247"
-            source:id ?cf_status_id
+            source:id ?cf_overlay_id # "9987d9fa-0230-0205-b75e-6cd219362f46"
+        ]
+    ],
+    # 4.1 - Bezoekertool
+    [
+        #"true"^^<http://www.w3.org/2001/XMLSchema#boolean>
+        source:value ?bzt;
+        source:definition [
+            source:id ?cf_bzt_id #"efc39617-3241-0564-a350-71dfa9f66914"
         ]
     ] .
 

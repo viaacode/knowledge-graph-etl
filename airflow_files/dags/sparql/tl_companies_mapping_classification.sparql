@@ -13,21 +13,28 @@ INSERT {
         ?org org:classification ?class.
 }
 USING graphs:tl_companies
+USING graphs:tl_custom_fields
 WHERE {
+
     ?o source:custom_fields [
         source:value ?orid;
         source:definition [
-            source:id "c3a10038-7a8e-0e96-bd4a-53e4668e6244"
+            #source:id "c3a10038-7a8e-0e96-bd4a-53e4668e6244"
+            source:id ?cf_orid_id
         ]
     ].
+    ?cf_orid source:id ?cf_orid_id; source:label "5.1 - OR-ID" . 
     # Organizations
     OPTIONAL {
         ?o source:custom_fields [
             source:value ?class_field;
             source:definition [
-                source:id "ce9d448c-6cd5-09b5-af49-54d73c946242"
+                #source:id "ce9d448c-6cd5-09b5-af49-54d73c946242"
+                source:id ?cf_class_id
             ]
         ].
+        ?cf_class source:id ?cf_class_id; source:label "1.1 - Type organisatie" . 
+        
         BIND (URI(CONCAT('https://data.meemoo.be/terms/org/types#', LCASE(REPLACE(STRAFTER(?class_field, ' - '),' ','_')))) AS ?class)
     }
 
