@@ -106,9 +106,6 @@ class SparqlUpdateHook(HttpHook):
         self.sparql.resetQuery()
 
     def insert(self, triples, graph=None):
-        if not len(triples) > 0:
-            return
-
         query = "INSERT DATA {\n"
 
         if graph is not None:
@@ -129,7 +126,9 @@ class SparqlUpdateHook(HttpHook):
 
         g = Graph()
         g.parse(filename)
-        print(filename)
+        
+        if not len(g) > 0:
+            return
 
         self.insert(g,graph)
 

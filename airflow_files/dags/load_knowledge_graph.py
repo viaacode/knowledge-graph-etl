@@ -457,7 +457,7 @@ with DAG(
         op_kwargs={
             "filename": "/files/mam_tenants_{}.nt".format(env),
             "http_conn_id": endpoint_conn_id,
-            "graph": "https://data.meemoo.be/graphs/tl_companies",
+            "graph": "https://data.meemoo.be/graphs/organizations",
         },
     )
 
