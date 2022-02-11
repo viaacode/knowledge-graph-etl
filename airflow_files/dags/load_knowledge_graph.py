@@ -33,7 +33,7 @@ default_args = {
 }
 
 DIR = Variable.get("data_path", "./files")
-SRC_NS = Variable.get("source_ns", "https://data.hetarchief.be/ns/source/")
+SRC_NS = Variable.get("source_ns", "https://data.hetarchief.be/ns/source#")
 GRAPH_NS = Variable.get("graph_ns", "https://data.hetarchief.be/graph/")
 
 teamleader2db_conn_id = Variable.get("teamleader2db_conn_id", "teamleader2db-qas")

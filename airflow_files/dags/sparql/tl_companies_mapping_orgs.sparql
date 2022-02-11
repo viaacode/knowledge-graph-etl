@@ -7,7 +7,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX dct: <http://purl.org/dc/terms/>
 
 PREFIX graphs: <https://data.hetarchief.be/graph/>
-PREFIX source: <https://data.hetarchief.be/ns/source/>
+PREFIX source: <https://data.hetarchief.be/ns/source#>
 
 WITH graphs:organizations
 INSERT {
