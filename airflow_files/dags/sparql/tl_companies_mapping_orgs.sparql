@@ -1,13 +1,13 @@
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX org:        <http://www.w3.org/ns/org#>
-PREFIX meemoo:     <https://meemoo.be/ns/org#>
+PREFIX meemoo:     <https://data.hetarchief.be/ns/organisatie#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX schema: <https://schema.org/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX dct: <http://purl.org/dc/terms/>
 
-PREFIX graphs: <https://data.meemoo.be/graphs/>
-PREFIX source: <https://data.meemoo.be/sources/>
+PREFIX graphs: <https://data.hetarchief.be/graph/>
+PREFIX source: <https://data.hetarchief.be/ns/source/>
 
 WITH graphs:organizations
 INSERT {
@@ -35,6 +35,7 @@ INSERT {
 USING graphs:tl_companies
 USING graphs:tl_custom_fields
 WHERE {
+    BIND ('https://data.hetarchief.be/id/organisatie/' AS ?ns)
     # Organizations
     ?cf_orid source:id ?cf_orid_id; source:label "5.1 - OR-ID" . 
     ?o source:custom_fields [
@@ -44,8 +45,8 @@ WHERE {
             source:id ?cf_orid_id
         ]
     ] .
-    BIND (URI(CONCAT('https://data.meemoo.be/sites/', ?orid, '-primary')) AS ?site)
-    BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?orid)) AS ?org)
+    BIND (URI(CONCAT(?ns, MD5(CONCAT(?orid,'-primary')))) AS ?site)
+    BIND (URI(CONCAT(?ns, ?orid)) AS ?org)
     BIND (URI(CONCAT('https://assets.viaa.be/images/', ?orid)) AS ?logo)
 
     OPTIONAL { ?o source:name ?orgName. }
@@ -67,7 +68,7 @@ WHERE {
                 source:city ?city;
                 source:country ?country. 
 
-        BIND (URI(CONCAT('https://data.meemoo.be/locations/', MD5(CONCAT(?streetAddress, ?postalCode, ?city)))) AS ?siteAddress)
+        BIND (URI(CONCAT(?ns, MD5(CONCAT(?streetAddress, ?postalCode, ?city)))) AS ?siteAddress)
     }
 
     # CP - Omschrijving (200 tek.)
@@ -88,6 +89,6 @@ WHERE {
             source:id ?amid
         ].
 
-        BIND (URI(CONCAT('https://data.meemoo.be/people/', ?amid)) AS ?am) 
+        BIND (URI(CONCAT(?ns, MD5(?amid))) AS ?am) 
     }
 }

@@ -1,12 +1,12 @@
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX org:        <http://www.w3.org/ns/org#>
-PREFIX meemoo:     <https://meemoo.be/ns/org#>
+PREFIX meemoo:     <https://data.hetarchief.be/ns/organisatie#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX schema: <https://schema.org/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-PREFIX graphs: <https://data.meemoo.be/graphs/>
-PREFIX source: <https://data.meemoo.be/sources/>
+PREFIX graphs: <https://data.hetarchief.be/graph/>
+PREFIX source: <https://data.hetarchief.be/ns/source/>
 
 WITH graphs:organizations
 INSERT {
@@ -44,12 +44,13 @@ INSERT {
 }
 USING graphs:ldap_organizations
 WHERE {
+    BIND ('https://data.hetarchief.be/id/organisatie/' AS ?ns)
     # Organization
     ?o source:objectClass "organization";
         source:o ?orid;
         source:description ?orgName .
 
-    BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?orid)) AS ?org)
+    BIND (URI(CONCAT(?ns, ?orid)) AS ?org)
     BIND (URI(CONCAT('https://assets.viaa.be/images/', ?orid)) AS ?logo)
 
     # Address
@@ -60,8 +61,8 @@ WHERE {
     OPTIONAL {
         ?o source:st ?region.
     }
-    BIND (URI(CONCAT('https://data.meemoo.be/sites/', ?orid, '-primary')) AS ?site)        
-    BIND (URI(CONCAT('https://data.meemoo.be/addresses/', MD5(CONCAT(?streetAddress, ?postalCode, ?city)))) AS ?siteAddress)
+    BIND (URI(CONCAT(?ns, MD5(CONCAT(?orid, '-primary')))) AS ?site)        
+    BIND (URI(CONCAT(?ns, MD5(CONCAT(?streetAddress, ?postalCode, ?city)))) AS ?siteAddress)
 
     # Units
     OPTIONAL {
@@ -70,7 +71,7 @@ WHERE {
         ?u source:ou ?ou;
            source:description ?uname .
 
-        BIND (URI(CONCAT('https://data.meemoo.be/organizations/', ?ou)) AS ?unit)
+        BIND (URI(CONCAT(?ns, MD5(CONCAT(?ou, '-unit')))) AS ?unit)
 
 
         # Address
@@ -82,8 +83,8 @@ WHERE {
             ?u source:st ?u_region.
         }
 
-        BIND (URI(CONCAT('https://data.meemoo.be/sites/', ?ou)) AS ?u_site)        
-        BIND (URI(CONCAT('https://data.meemoo.be/addresses/', MD5(?u_streetAddress))) AS ?u_siteAddress)
+        BIND (URI(CONCAT(?ns, MD5(CONCAT(?ou, '-site')))) AS ?u_site)        
+        BIND (URI(CONCAT(?ns, MD5(?u_streetAddress))) AS ?u_siteAddress)
 
     }
 }

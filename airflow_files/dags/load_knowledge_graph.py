@@ -33,7 +33,8 @@ default_args = {
 }
 
 DIR = Variable.get("data_path", "./files")
-SRC_NS = Variable.get("source_ns", "https://data.meemoo.be/sources/")
+SRC_NS = Variable.get("source_ns", "https://data.hetarchief.be/ns/source/")
+GRAPH_NS = Variable.get("graph_ns", "https://data.hetarchief.be/graph/")
 
 teamleader2db_conn_id = Variable.get("teamleader2db_conn_id", "teamleader2db-qas")
 ldap2db_conn_id = Variable.get("ldap2db_conn_id", "ldap2db-qas")
@@ -51,7 +52,7 @@ with DAG(
     tags=["example"],
     user_defined_macros={
         "quote_plus": quote_plus,
-        "list_to_nt": lambda l: ", ".join(list(map(lambda u: "<{}>".format(u), l))),
+        "list_to_nt": lambda l: ", ".join(list(map(lambda u: f"<{u}>", l))),
     },
 ) as dag:
 
@@ -72,7 +73,7 @@ with DAG(
         cursor.itersize = 10000  # chunk size
 
         # test data retrieval
-        print("Retrieved cursor for {}".format(query))
+        print(f"Retrieved cursor for {query}")
         cursor.execute(query)
         return cursor
 
@@ -92,9 +93,7 @@ with DAG(
         outfile.close()
 
         print(
-            "JSON records from {}.{} been written to {}.".format(
-                schema, table, filename
-            )
+            f"JSON records from {schema}.{table} been written to {filename}."
         )
 
     def extract_json_as_rdf(ds, **kwargs):
@@ -114,7 +113,7 @@ with DAG(
         g = Graph()
         g.bind("source", ns)
 
-        outfile.write("@prefix source: <{}> . \n".format(namespace))
+        outfile.write(f"@prefix source: <{namespace}> . \n")
 
         for record in cursor:
             nr_of_triples = 0
@@ -126,15 +125,13 @@ with DAG(
                 )
                 nr_of_triples += 1
             print(
-                "Record {} produced {} triples.".format(cursor.rownumber, nr_of_triples)
+                f"Record {cursor.rownumber} produced {nr_of_triples} triples."
             )
         # Closing file
         outfile.close()
 
         print(
-            "{} JSON records from {}.{} been written to {}.".format(
-                cursor.rowcount, schema, table, filename
-            )
+            f"{cursor.rowcount} JSON records from {schema}.{table} been written to {filename}."
         )
 
     def extract_and_insert(ds, **kwargs):
@@ -156,9 +153,7 @@ with DAG(
             hook.insert(triples_gen, graph)
 
         print(
-            "JSON records from {}.{} have been inserted in {}.".format(
-                schema, table, http_conn_id
-            )
+            f"JSON records from {schema}.{table} have been inserted in {http_conn_id}."
         )
 
     def sparql_update(ds, **kwargs):
@@ -191,11 +186,6 @@ with DAG(
 
     # Turn all JSON data into RDF and insert
     # TODO: using graph store protocol is probably better than SPARQL update INSERT statements
-
-    # t1 = BashOperator(
-    #     task_id='mam_tenant',
-    #     bash_command='tarql-1.2/bin/tarql --ntriples sparql/map_mam_tenants.sparql /files/orgs-{}.csv > /files/mam_tenants_{}.nt'.format(env, env),
-    # )
 
     h0 = HttpSensor(
         task_id="teamleader2db_check",
@@ -265,7 +255,7 @@ with DAG(
             "postgres_conn_id": postgres_conn_id,
             "http_conn_id": endpoint_conn_id,
             "namespace": SRC_NS,
-            "graph": "https://data.meemoo.be/graphs/ldap_organizations",
+            "graph": f"{GRAPH_NS}ldap_organizations",
         },
     )
 
@@ -279,7 +269,7 @@ with DAG(
             "postgres_conn_id": postgres_conn_id,
             "http_conn_id": endpoint_conn_id,
             "namespace": SRC_NS,
-            "graph": "https://data.meemoo.be/graphs/tl_users",
+            "graph": f"{GRAPH_NS}tl_users",
         },
     )
 
@@ -293,7 +283,7 @@ with DAG(
             "postgres_conn_id": postgres_conn_id,
             "http_conn_id": endpoint_conn_id,
             "namespace": SRC_NS,
-            "graph": "https://data.meemoo.be/graphs/tl_companies",
+            "graph": f"{GRAPH_NS}tl_companies",
         },
     )
 
@@ -307,7 +297,7 @@ with DAG(
             "postgres_conn_id": postgres_conn_id,
             "http_conn_id": endpoint_conn_id,
             "namespace": SRC_NS,
-            "graph": "https://data.meemoo.be/graphs/tl_custom_fields",
+            "graph": f"{GRAPH_NS}tl_custom_fields",
         },
     )
 
@@ -318,7 +308,7 @@ with DAG(
         op_kwargs={"http_conn_id": endpoint_conn_id},
         templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={
-            "graph": "https://data.meemoo.be/graphs/ldap_organizations",
+            "graph": f"{GRAPH_NS}ldap_organizations",
         },
     )
 
@@ -328,7 +318,7 @@ with DAG(
         op_kwargs={"http_conn_id": endpoint_conn_id},
         templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={
-            "graph": "https://data.meemoo.be/graphs/tl_users",
+            "graph": f"{GRAPH_NS}tl_users",
         },
     )
 
@@ -338,7 +328,7 @@ with DAG(
         op_kwargs={"http_conn_id": endpoint_conn_id},
         templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={
-            "graph": "https://data.meemoo.be/graphs/tl_companies",
+            "graph": f"{GRAPH_NS}tl_companies",
         },
     )
 
@@ -348,7 +338,7 @@ with DAG(
         op_kwargs={"http_conn_id": endpoint_conn_id},
         templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
         params={
-            "graph": "https://data.meemoo.be/graphs/tl_custom_fields",
+            "graph": f"{GRAPH_NS}tl_custom_fields",
         },
     )
 
@@ -357,7 +347,7 @@ with DAG(
         python_callable=sparql_update,
         op_kwargs={"http_conn_id": endpoint_conn_id},
         templates_dict={"query": "CLEAR SILENT GRAPH <{{params.graph}}>"},
-        params={"graph": "https://data.meemoo.be/graphs/organizations"},
+        params={"graph": f"{GRAPH_NS}organizations"},
     )
 
     # map by running sparql
@@ -455,9 +445,9 @@ with DAG(
         task_id="insert_mam_tenants",
         python_callable=insert_file,
         op_kwargs={
-            "filename": "/files/mam_tenants_{}.nt".format(env),
+            "filename": f"/files/mam_tenants_{env}.nt",
             "http_conn_id": endpoint_conn_id,
-            "graph": "https://data.meemoo.be/graphs/organizations",
+            "graph": f"{GRAPH_NS}organizations",
         },
     )
 
@@ -468,7 +458,8 @@ with DAG(
             "query": """
             PREFIX prov: <http://www.w3.org/ns/prov#>
             PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#> 
-            PREFIX : <https://data.meemoo.be/>
+            PREFIX : <https://data.hetarchief.be/id/etl/>
+            PREFIX etl: <https://data.hetarchief.be/ns/etl/>
 
             INSERT DATA 
             {
@@ -476,9 +467,9 @@ with DAG(
                     <{{params.result}}> prov:wasDerivedFrom {{ list_to_nt(params.sources)}};
                                         prov:wasGeneratedBy :{{ quote_plus(run_id) }}.
                                          
-                    :{{ quote_plus(run_id) }} a prov:Activity, :AirflowRun;
+                    :{{ quote_plus(run_id) }} a prov:Activity, etl:AirflowRun;
                         prov:generated <{{params.result}}>;
-                        prov:used          :ApacheAirflow;
+                        prov:used          etl:ApacheAirflow;
                         prov:startedAtTime "{{ ts }}"^^xsd:dateTime.
                     
                 }
@@ -487,12 +478,12 @@ with DAG(
         },
         params={
             "sources": [
-                "https://data.meemoo.be/graphs/tl_companies",
-                "https://data.meemoo.be/graphs/tl_users",
-                "https://data.meemoo.be/graphs/ldap_organizations",
+                f"{GRAPH_NS}tl_companies",
+                f"{GRAPH_NS}tl_users",
+                f"{GRAPH_NS}ldap_organizations",
             ],
-            "result": "https://data.meemoo.be/graphs/organizations",
-            "graph": "https://data.meemoo.be/graphs/provenance",
+            "result": f"{GRAPH_NS}organizations",
+            "graph": f"{GRAPH_NS}provenance",
         },
         op_kwargs={"http_conn_id": endpoint_conn_id},
     )
