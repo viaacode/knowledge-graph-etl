@@ -14,6 +14,7 @@ INSERT {
             schema:givenName ?fn; 
             schema:familyName ?ln;
             schema:email ?mbox;
+            schema:telephone ?tel_nr;
             org:holds ?post.
 
         ?post  a org:Post;
@@ -30,13 +31,19 @@ WHERE {
     ?ru source:id ?amid;
         source:first_name ?fn;
         source:last_name ?ln;
-        source:email ?email .
+        source:email ?email.
+
+    OPTIONAL {
+        ?ru source:telephones ?tel.
+        ?tel source:type ?tel_type;
+            source:number ?tel_nr.
+    }
         
     OPTIONAL { 
         ?ru source:function ?function.
         BIND (STRLANG(?function, "nl") AS ?function_label)
         BIND (URI(CONCAT(?ns, MD5(CONCAT(?amid,?function)))) AS ?post)
-        BIND (URI(CONCAT('https://data.hetarchief.be/id/organisatie-functies#', ENCODE_FOR_URI(?function))) AS ?role)
+        BIND (URI(CONCAT('https://data.hetarchief.be/id/organisatie-functie#', ENCODE_FOR_URI(?function))) AS ?role)
     }
 
     BIND (URI(CONCAT(?ns, MD5(?amid))) AS ?am)
