@@ -18,7 +18,7 @@ USING graphs:tl_custom_fields
 WHERE {
     # Organizations
     ?cf_orid source:id ?cf_orid_id; source:label "5.1 - OR-ID" . 
-    ?cf_overlay source:id ?cf_overlay_id; source:label "4.2 - Overlay" .
+    ?cf_overlay source:id ?cf_overlay_id; source:label "4.2 - Watermerk" .
     ?cf_bzt source:id ?cf_bzt_id; source:label "4.1 - Bezoekertool" .
 
     ?o source:custom_fields [

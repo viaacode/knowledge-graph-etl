@@ -17,7 +17,7 @@ USING graphs:tl_custom_fields
 WHERE {
     # Organizations
     ?cf_orid source:id ?cf_orid_id; source:label "5.1 - OR-ID" . 
-    ?cf_status source:id ?cf_status_id; source:label "CP Status" . 
+    ?cf_status source:id ?cf_status_id; source:label "2.2 - CP status" . 
     ?o source:custom_fields [
         source:value ?orid;
         source:definition [

@@ -45,9 +45,9 @@ WHERE {
             source:id ?cf_orid_id
         ]
     ] .
-    BIND (URI(CONCAT(?ns, MD5(CONCAT(?orid,'-primary')))) AS ?site)
     BIND (URI(CONCAT(?ns, ?orid)) AS ?org)
     BIND (URI(CONCAT('https://assets.viaa.be/images/', ?orid)) AS ?logo)
+    BIND (URI(CONCAT(?ns, MD5(CONCAT(?orid, "-site")))) AS ?site)
 
     OPTIONAL { ?o source:name ?orgName. }
     OPTIONAL { 
@@ -59,18 +59,18 @@ WHERE {
     # Address
     OPTIONAL {
         ?o source:addresses ?addresses.
-
-        ?addresses source:type "primary"; 
-                   source:address ?primaryAddress.
-
-        ?primaryAddress source:line_1 ?streetAddress;
+        ?addresses  source:type ?addressType;
+            source:address ?address.
+    
+        ?address source:line_1 ?streetAddress;
                 source:postal_code ?postalCode;
                 source:city ?city;
                 source:country ?country. 
-
-        BIND (URI(CONCAT(?ns, MD5(CONCAT(?streetAddress, ?postalCode, ?city)))) AS ?siteAddress)
+        
     }
 
+    BIND (URI(CONCAT(?ns, MD5(CONCAT(?streetAddress, ?postalCode, ?city)))) AS ?siteAddress)
+    
     # CP - Omschrijving (200 tek.)
     OPTIONAL {
         ?cf_omsch source:id ?cf_omsch_id; source:label "CP - Omschrijving (200 tek.)" .
@@ -88,7 +88,6 @@ WHERE {
         ?o source:responsible_user [
             source:id ?amid
         ].
-
-        BIND (URI(CONCAT(?ns, MD5(?amid))) AS ?am) 
     }
+    BIND (URI(CONCAT(?ns, MD5(?amid))) AS ?am) 
 }
