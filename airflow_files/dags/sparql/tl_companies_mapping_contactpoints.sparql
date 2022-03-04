@@ -75,7 +75,7 @@ WHERE {
 
     # Link aanvraagformulier
     OPTIONAL {
-        ?cf_form source:id ?cf_form_id; source:label "Link aanvraagformulier" .
+        ?cf_form source:id ?cf_form_id; source:label "CP - Link aanvraagformulier" .
         ?o source:custom_fields [
             source:value ?aanvraagformulier;
             source:definition [
