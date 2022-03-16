@@ -488,6 +488,46 @@ with DAG(
         op_kwargs={"http_conn_id": endpoint_conn_id},
     )
 
+    d1 = PythonOperator(
+        task_id="ldap_organizations_drop",
+        python_callable=sparql_update,
+        op_kwargs={"http_conn_id": endpoint_conn_id},
+        templates_dict={"query": """
+        DROP SILENT GRAPH <{{params.graph}}>
+        """},
+        params={"graph": f"{GRAPH_NS}ldap_organizations"},
+    )
+
+    d2 = PythonOperator(
+        task_id="tl_users_drop",
+        python_callable=sparql_update,
+        op_kwargs={"http_conn_id": endpoint_conn_id},
+        templates_dict={"query": """
+        DROP SILENT GRAPH <{{params.graph}}>
+        """},
+        params={"graph": f"{GRAPH_NS}tl_users"},
+    )
+
+    d3 = PythonOperator(
+        task_id="tl_companies_drop",
+        python_callable=sparql_update,
+        op_kwargs={"http_conn_id": endpoint_conn_id},
+        templates_dict={"query": """
+        DROP SILENT GRAPH <{{params.graph}}>
+        """},
+        params={"graph": f"{GRAPH_NS}tl_companies"},
+    )
+
+    d4 = PythonOperator(
+        task_id="tl_custom_fields_drop",
+        python_callable=sparql_update,
+        op_kwargs={"http_conn_id": endpoint_conn_id},
+        templates_dict={"query": """
+        DROP SILENT GRAPH <{{params.graph}}>
+        """},
+        params={"graph": f"{GRAPH_NS}tl_custom_fields"},
+    )
+
     h0 >> h1 >> h2 >> [c2, c3, c4]
     h3 >> h4 >> h5 >> c1
     #t1 >> mt
@@ -497,10 +537,10 @@ with DAG(
     c3 >> e3
     c4 >> e4
 
-    e1 >> [m1, m4, m5, m9]
-    e2 >> m2
-    e3 >> [m3, m6, m7, m8, m10]
-    e4 >> [m3, m6, m7, m8, m10]
+    e1 >> [m1, m4, m5, m9] >> d1
+    e2 >> m2 >> d2
+    e3 >> [m3, m6, m7, m8, m10] >> d3
+    e4 >> [m3, m6, m7, m8, m10] >> d3
 
     [e1, e2, e3, e4] >> c >> mp
-    c >> [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, mt]
+    c >> [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, mt] >> d4

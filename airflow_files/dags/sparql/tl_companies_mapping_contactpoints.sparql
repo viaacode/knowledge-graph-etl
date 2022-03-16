@@ -35,15 +35,18 @@ WHERE {
             #source:id "c3a10038-7a8e-0e96-bd4a-53e4668e6244"
             source:id ?cf_orid_id
         ]
-    ];
-    source:emails [
-        source:type ?etype;
-        source:email ?email
-    ];
-    source:telephones [
-        source:type ?ttype;
-        source:number ?telnumber
     ].
+    
+    OPTIONAL {
+       ?o source:emails ?emails.
+       ?emails source:type ?etype;
+        source:email ?email
+    }
+    OPTIONAL {
+        ?o source:telephones ?telephones.
+        ?telephones source:type ?ttype;
+        source:number ?telnumber
+    }
 
     BIND (URI(CONCAT(?ns, ?orid)) AS ?org)
     BIND (URI(CONCAT(?ns, MD5(CONCAT(?orid, '-', ?etype)))) AS ?contact)  
