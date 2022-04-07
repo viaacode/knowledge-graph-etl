@@ -10,7 +10,7 @@ PREFIX source: <https://data.hetarchief.be/ns/source#>
 
 WITH graphs:organizations
 INSERT {
-    ?org schema:contactPoint ?contact, ?contact_ontsluting;
+    ?org schema:contactPoint ?contact, ?contact_ontsluiting;
          meemoo:requestForm ?aanvraagformulier.
 
     ?contact a schema:ContactPoint;
@@ -40,13 +40,15 @@ WHERE {
     OPTIONAL {
        ?o source:emails ?emails.
        ?emails source:type ?etype;
-        source:email ?email
+               source:email ?email
+
+        OPTIONAL {
+            ?o source:telephones ?telephones.
+            ?telephones source:type ?etype;
+            source:number ?telnumber
+        }
     }
-    OPTIONAL {
-        ?o source:telephones ?telephones.
-        ?telephones source:type ?ttype;
-        source:number ?telnumber
-    }
+    
 
     BIND (URI(CONCAT(?ns, ?orid)) AS ?org)
     BIND (URI(CONCAT(?ns, MD5(CONCAT(?orid, '-', ?etype)))) AS ?contact)  
