@@ -10,14 +10,17 @@ PREFIX source: <https://data.hetarchief.be/ns/source#>
 
 WITH graphs:organizations
 INSERT {
-        ?org a org:Organization;
-                schema:identifier ?orid;
-                skos:altLabel ?orgName;
-                schema:logo ?logo;
-                meemoo:sector ?sector;
-                org:hasPrimarySite ?site;
-                org:hasSite ?site.
-                
+        ?org org:hasUnit ?unit.
+
+        ?unit a org:OrganizationalUnit;
+            org:unitOf ?org;
+            schema:identifier ?ou;
+            skos:prefLabel ?name;
+
+            meemoo:sector ?sector;
+            org:hasPrimarySite ?site;
+            org:hasSite ?site.
+
         ?site  a org:Site;
             org:siteAddress ?siteAddress.
         
@@ -27,36 +30,46 @@ INSERT {
             schema:postalCode ?postalCode;
             schema:addressRegion ?region;
             schema:addressLocality ?city. 
+    
 }
 USING graphs:ldap_organizations
 WHERE {
     BIND ('https://data.hetarchief.be/id/organisatie/' AS ?ns)
+
+    # Units
+    ?u source:objectClass "organizationalUnit";
+        source:ou ?ou;
+        source:description ?name .
+    
     # Organization
+    ?units source:attributes ?u.
+    ?x source:units ?units;
+       source:attributes ?o.
+       
     ?o source:objectClass "organization";
-        source:o ?orid;
-        source:description ?orgName .
+       source:o ?orid
 
     BIND (URI(CONCAT(?ns, ?orid)) AS ?org)
-    BIND (URI(CONCAT('https://assets.viaa.be/images/', ?orid)) AS ?logo)
 
     # Address
     OPTIONAL {
-        ?o source:street ?streetAddress
+        ?u source:street ?streetAddress
     }
     OPTIONAL {
-        ?o source:postalCode ?postalCode;
+        ?u source:postalCode ?postalCode;
     }
     OPTIONAL {
-        ?o source:l ?city.
+        ?u source:l ?city.
     }
     OPTIONAL {
-        ?o source:st ?region.
+        ?u source:st ?region.
     }
 
     OPTIONAL {
-        ?o source:x-be-viaa-sector ?sector.
+        ?u source:x-be-viaa-sector ?sector.
     }
-
-    BIND (URI(CONCAT(?ns, MD5(CONCAT(?orid, '-primary')))) AS ?site)        
-    BIND (URI(CONCAT(?ns, MD5(CONCAT(?streetAddress, ?postalCode, ?city)))) AS ?siteAddress)
+    
+    BIND (URI(CONCAT(?ns, MD5(?ou))) AS ?unit)
+    BIND (URI(CONCAT(?ns, MD5(CONCAT(?ou, '-site')))) AS ?site)        
+    BIND (URI(CONCAT(?ns, MD5(?u_streetAddress))) AS ?siteAddress)
 }

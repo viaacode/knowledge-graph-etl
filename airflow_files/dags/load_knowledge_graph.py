@@ -440,6 +440,15 @@ with DAG(
             "http_conn_id": endpoint_conn_id,
         },
     )
+    
+    m11 = PythonOperator(
+        task_id="map_ldap_units",
+        python_callable=sparql_update,
+        op_kwargs={
+            "query": "sparql/ldap_mapping_units.sparql",
+            "http_conn_id": endpoint_conn_id,
+        },
+    )
 
     mt = PythonOperator(
         task_id="insert_mam_tenants",
@@ -530,17 +539,16 @@ with DAG(
 
     h0 >> h1 >> h2 >> [c2, c3, c4]
     h3 >> h4 >> h5 >> c1
-    #t1 >> mt
 
     c1 >> e1
     c2 >> e2
     c3 >> e3
     c4 >> e4
 
-    e1 >> [m1, m4, m5, m9] >> d1
+    e1 >> [m1, m4, m5, m9, m11] >> d1
     e2 >> m2 >> d2
     e3 >> [m3, m6, m7, m8, m10] >> d3
     e4 >> [m3, m6, m7, m8, m10] >> d3
 
     [e1, e2, e3, e4] >> c >> mp
-    c >> [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, mt] >> d4
+    c >> [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, mt] >> d4
