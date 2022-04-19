@@ -232,8 +232,9 @@ with DAG(
         endpoint="",
         data=json.dumps({"full_sync": full_sync}),
         headers={"Content-Type": "application/json"},
+        #TODO: switch to 200 check
         response_check=lambda response: response.json()["status"]
-        == "DEEWEE sync started",
+        == "AVO sync started",
     )
 
     h5 = HttpSensor(
