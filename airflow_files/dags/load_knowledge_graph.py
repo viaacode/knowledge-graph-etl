@@ -36,11 +36,11 @@ DIR = Variable.get("data_path", "./files")
 SRC_NS = Variable.get("source_ns", "https://data.hetarchief.be/ns/source#")
 GRAPH_NS = Variable.get("graph_ns", "https://data.hetarchief.be/graph/")
 
-teamleader2db_conn_id = Variable.get("teamleader2db_conn_id", "teamleader2db-qas")
-ldap2db_conn_id = Variable.get("ldap2db_conn_id", "ldap2db-qas")
-endpoint_conn_id = Variable.get("endpoint_conn_id", "stardog-qas")
-postgres_conn_id = Variable.get("postgres_conn_id", "etl-harvest-qas")
 env = Variable.get("env", "qas")
+teamleader2db_conn_id = Variable.get("teamleader2db_conn_id", "teamleader2db-" + env)
+ldap2db_conn_id = Variable.get("ldap2db_conn_id", "ldap2db-" + env)
+endpoint_conn_id = Variable.get("endpoint_conn_id", "stardog-" + env)
+postgres_conn_id = Variable.get("postgres_conn_id", "etl-harvest-" + env)
 full_sync = Variable.get("full_sync", False, True)
 
 with DAG(
@@ -184,6 +184,14 @@ with DAG(
 
         SparqlUpdateHook(method="POST", http_conn_id=http_conn_id).insert_file(filename, graph)
 
+    def response_check_ldap(response):
+        print(response.json())
+        return response.json()["status"] == "AVO sync started" and response.json()["full_sync"] == bool(full_sync)
+
+    def response_check_teamleader(response):
+        print(response.json())
+        return response.json()["status"] == "Teamleader sync started" and response.json()["full_sync"] == bool(full_sync)
+
     # Turn all JSON data into RDF and insert
     # TODO: using graph store protocol is probably better than SPARQL update INSERT statements
 
@@ -203,8 +211,7 @@ with DAG(
         endpoint="",
         data=json.dumps({"full_sync": full_sync}),
         headers={"Content-Type": "application/json"},
-        response_check=lambda response: response.json()["status"]
-        == "Teamleader sync started",
+        response_check=response_check_teamleader,
     )
 
     h2 = HttpSensor(
@@ -233,8 +240,7 @@ with DAG(
         data=json.dumps({"full_sync": full_sync}),
         headers={"Content-Type": "application/json"},
         #TODO: switch to 200 check
-        response_check=lambda response: response.json()["status"]
-        == "AVO sync started",
+        response_check=response_check_ldap,
     )
 
     h5 = HttpSensor(
