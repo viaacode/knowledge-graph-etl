@@ -98,7 +98,7 @@ class SparqlUpdateHook(HttpHook):
             for h in headers.items():
                 self.sparql.addCustomHttpHeader(h[0], h[1])
 
-        self.log.info("Sending query '{}' to {}".format(query, self.endpoint))
+        self.log.info("Sending query to {}".format(self.endpoint))
 
         results = self.sparql.query()
         self.log.info(results.response.read())

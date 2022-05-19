@@ -40,6 +40,7 @@ env = Variable.get("env", "qas")
 teamleader2db_conn_id = Variable.get("teamleader2db_conn_id", "teamleader2db-" + env)
 ldap2db_conn_id = Variable.get("ldap2db_conn_id", "ldap2db-" + env)
 endpoint_conn_id = Variable.get("endpoint_conn_id", "stardog-" + env)
+optimize_conn_id = Variable.get("optimize_conn_id", "stardog-optimize-" + env)
 postgres_conn_id = Variable.get("postgres_conn_id", "etl-harvest-" + env)
 full_sync = Variable.get("full_sync", False, True)
 
@@ -184,13 +185,9 @@ with DAG(
 
         SparqlUpdateHook(method="POST", http_conn_id=http_conn_id).insert_file(filename, graph)
 
-    def response_check_ldap(response):
+    def sync_response_check(response):
         print(response.json())
-        return response.json()["status"] == "AVO sync started" and response.json()["full_sync"] == bool(full_sync)
-
-    def response_check_teamleader(response):
-        print(response.json())
-        return response.json()["status"] == "Teamleader sync started" and response.json()["full_sync"] == bool(full_sync)
+        return response.status_code == 200 and response.json()["full_sync"] == bool(full_sync)
 
     # Turn all JSON data into RDF and insert
     # TODO: using graph store protocol is probably better than SPARQL update INSERT statements
@@ -211,7 +208,7 @@ with DAG(
         endpoint="",
         data=json.dumps({"full_sync": full_sync}),
         headers={"Content-Type": "application/json"},
-        response_check=response_check_teamleader,
+        response_check=sync_response_check,
     )
 
     h2 = HttpSensor(
@@ -239,8 +236,7 @@ with DAG(
         endpoint="",
         data=json.dumps({"full_sync": full_sync}),
         headers={"Content-Type": "application/json"},
-        #TODO: switch to 200 check
-        response_check=response_check_ldap,
+        response_check=sync_response_check,
     )
 
     h5 = HttpSensor(
@@ -257,7 +253,7 @@ with DAG(
         python_callable=extract_and_insert,
         op_kwargs={
             "schema": "public",
-            "table": "ldap_organizations",
+            "table": "meemoo_entities",
             "field": "ldap_content",
             "postgres_conn_id": postgres_conn_id,
             "http_conn_id": endpoint_conn_id,
@@ -359,10 +355,10 @@ with DAG(
 
     # map by running sparql
     m1 = PythonOperator(
-        task_id="map_ldap_orgs",
+        task_id="map_ldap_org",
         python_callable=sparql_update,
         op_kwargs={
-            "query": "sparql/ldap_mapping_orgs.sparql",
+            "query": "sparql/ldap_mapping_org.sparql",
             "http_conn_id": endpoint_conn_id,
         },
     )
@@ -377,19 +373,19 @@ with DAG(
     )
 
     m3 = PythonOperator(
-        task_id="map_tl_companies_orgs",
+        task_id="map_tl_companies_org",
         python_callable=sparql_update,
         op_kwargs={
-            "query": "sparql/tl_companies_mapping_orgs.sparql",
+            "query": "sparql/tl_companies_mapping_org.sparql",
             "http_conn_id": endpoint_conn_id,
         },
     )
 
     m4 = PythonOperator(
-        task_id="map_ldap_schools",
+        task_id="map_ldap_school",
         python_callable=sparql_update,
         op_kwargs={
-            "query": "sparql/ldap_mapping_schools.sparql",
+            "query": "sparql/ldap_mapping_school.sparql",
             "http_conn_id": endpoint_conn_id,
         },
     )
@@ -404,19 +400,19 @@ with DAG(
     )
 
     m6 = PythonOperator(
-        task_id="map_tl_companies_contactpoints",
+        task_id="map_tl_companies_contactpoint",
         python_callable=sparql_update,
         op_kwargs={
-            "query": "sparql/tl_companies_mapping_contactpoints.sparql",
+            "query": "sparql/tl_companies_mapping_contactpoint.sparql",
             "http_conn_id": endpoint_conn_id,
         },
     )
 
     m7 = PythonOperator(
-        task_id="map_tl_companies_cps",
+        task_id="map_tl_companies_cp",
         python_callable=sparql_update,
         op_kwargs={
-            "query": "sparql/tl_companies_mapping_cps.sparql",
+            "query": "sparql/tl_companies_mapping_cp.sparql",
             "http_conn_id": endpoint_conn_id,
         },
     )
@@ -431,10 +427,10 @@ with DAG(
     )
 
     m9 = PythonOperator(
-        task_id="map_ldap_cps",
+        task_id="map_ldap_cp",
         python_callable=sparql_update,
         op_kwargs={
-            "query": "sparql/ldap_mapping_cps.sparql",
+            "query": "sparql/ldap_mapping_cp.sparql",
             "http_conn_id": endpoint_conn_id,
         },
     )
@@ -449,10 +445,26 @@ with DAG(
     )
     
     m11 = PythonOperator(
-        task_id="map_ldap_units",
+        task_id="map_ldap_unit",
         python_callable=sparql_update,
         op_kwargs={
-            "query": "sparql/ldap_mapping_units.sparql",
+            "query": "sparql/ldap_mapping_unit.sparql",
+            "http_conn_id": endpoint_conn_id,
+        },
+    )
+    m12 = PythonOperator(
+        task_id="map_ldap_sp",
+        python_callable=sparql_update,
+        op_kwargs={
+            "query": "sparql/ldap_mapping_sp.sparql",
+            "http_conn_id": endpoint_conn_id,
+        },
+    )
+    m13 = PythonOperator(
+        task_id="map_ldap_sc",
+        python_callable=sparql_update,
+        op_kwargs={
+            "query": "sparql/ldap_mapping_sc.sparql",
             "http_conn_id": endpoint_conn_id,
         },
     )
@@ -544,6 +556,14 @@ with DAG(
         params={"graph": f"{GRAPH_NS}tl_custom_fields"},
     )
 
+    opt = SimpleHttpOperator(
+        task_id="optimize_db",
+        http_conn_id=optimize_conn_id,
+        method="PUT",
+        headers={"Content-Type": "application/json"},
+        response_check=lambda response: response.status_code == 200,
+    )
+
     h0 >> h1 >> h2 >> [c2, c3, c4]
     h3 >> h4 >> h5 >> c1
 
@@ -552,10 +572,11 @@ with DAG(
     c3 >> e3
     c4 >> e4
 
-    e1 >> [m1, m4, m5, m9, m11] >> d1
+    e1 >> [m1, m4, m5, m9, m11, m12, m13] >> d1
     e2 >> m2 >> d2
     e3 >> [m3, m6, m7, m8, m10] >> d3
     e4 >> [m3, m6, m7, m8, m10] >> d3
 
     [e1, e2, e3, e4] >> c >> mp
-    c >> [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, mt] >> d4
+    c >> [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, mt] >> d4
+    [d1, d2, d3, d4] >> opt
