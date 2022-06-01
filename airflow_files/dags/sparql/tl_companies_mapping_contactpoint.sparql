@@ -10,7 +10,7 @@ PREFIX source: <https://data.hetarchief.be/ns/source#>
 
 WITH graphs:organizations
 INSERT {
-    ?org schema:contactPoint ?contact, ?contact_ontsluiting;
+    ?org schema:contactPoint ?contact, ?contact_ontsluiting, ?contact_facturatie;
          meemoo:requestForm ?aanvraagformulier.
 
     ?contact a schema:ContactPoint;
@@ -21,7 +21,11 @@ INSERT {
    ?contact_ontsluiting a schema:ContactPoint;
             schema:contactType "ontsluiting";
             schema:email ?email_ontsluiting;
-            schema:telephone ?telnumber_ontsluiting.            
+            schema:telephone ?telnumber_ontsluiting.     
+
+    ?contact_facturatie a schema:ContactPoint;
+            schema:contactType "facturatie";
+            schema:email ?email_facturatie.        
 }
 USING graphs:tl_companies
 USING graphs:tl_custom_fields
@@ -53,27 +57,40 @@ WHERE {
     BIND (URI(CONCAT(?ns, ?orid)) AS ?org)
     BIND (URI(CONCAT(?ns, MD5(CONCAT(?orid, '-', ?etype)))) AS ?contact)  
     
-    BIND (URI(CONCAT(?ns, MD5(CONCAT(?orid, '-ontsluiting')))) AS ?contact_ontsluiting)   
+    BIND (URI(CONCAT(?ns, MD5(CONCAT(?orid, '-ontsluiting')))) AS ?contact_ontsluiting)
+    BIND (URI(CONCAT(?ns, MD5(CONCAT(?orid, '-facturatie')))) AS ?contact_facturatie)   
 
     # E-mail Ontsluiting
     OPTIONAL {
-        ?cf_email source:id ?cf_email_id; source:label "E-mail Ontsluiting" .
+        ?cf_email_ontsluiting source:id ?cf_email_ontsluiting_id; source:label "E-mail Ontsluiting" .
         ?o source:custom_fields [
             source:value ?email_ontsluiting;
             source:definition [
                 #source:id "1b8878e5-4aed-0aa7-8055-63b8f8165afa"
-                source:id ?cf_email_id
+                source:id ?cf_email_ontsluiting_id
             ]
         ]
     }
     # Telefoon Ontsluiting
     OPTIONAL {
-        ?cf_tel source:id ?cf_tel_id; source:label "Telefoon Ontsluiting" .
+        ?cf_tel_ontsluiting source:id ?cf_tel_ontsluiting_id; source:label "Telefoon Ontsluiting" .
         ?o source:custom_fields [
             source:value ?telnumber_ontsluiting;
             source:definition [
                 #source:id "bbe4eb80-7f68-022e-b856-60c3e2665af9"
-                source:id ?cf_tel_id
+                source:id ?cf_tel_ontsluiting_id
+            ]
+        ]
+    }
+
+    # E-mail Facturatie
+    OPTIONAL {
+        ?cf_email_facturatie source:id ?cf_email_facturatie_id; source:label "E-mail Facturatie" .
+        ?o source:custom_fields [
+            source:value ?email_facturatie;
+            source:definition [
+                #source:id "1b8878e5-4aed-0aa7-8055-63b8f8165afa"
+                source:id ?cf_email_facturatie_id
             ]
         ]
     }
