@@ -71,5 +71,5 @@ WHERE {
     
     BIND (URI(CONCAT(?ns, MD5(?ou))) AS ?unit)
     BIND (URI(CONCAT(?ns, MD5(CONCAT(?ou, '-site')))) AS ?site)        
-    BIND (URI(CONCAT(?ns, MD5(?streetAddress))) AS ?siteAddress)
+    BIND (URI(CONCAT(?ns, MD5(CONCAT(?streetAddress, ?postalCode, ?city)))) AS ?siteAddress)
 }
