@@ -516,6 +516,78 @@ with DAG(
         op_kwargs={"http_conn_id": endpoint_conn_id},
     )
 
+    ml = PythonOperator(
+        task_id="add_logo",
+        python_callable=sparql_update,
+        templates_dict={
+            "query": """
+            PREFIX org:        <http://www.w3.org/ns/org#>
+            PREFIX schema: <https://schema.org/>
+
+            PREFIX graphs: <https://data.hetarchief.be/graph/>
+            PREFIX source: <https://data.hetarchief.be/ns/source#>
+
+            WITH graphs:organizations
+            INSERT {
+                    ?org a org:Organization;
+                            schema:logo ?logo.
+            }
+            USING graphs:tl_companies
+            USING graphs:tl_custom_fields
+            WHERE {
+                # Organizations
+                ?cf_orid source:id ?cf_orid_id; source:label "5.1 - OR-ID" . 
+                ?o source:custom_fields [
+                    source:value ?orid;
+                    source:definition [
+                        #source:id "c3a10038-7a8e-0e96-bd4a-53e4668e6244"
+                        source:id ?cf_orid_id
+                    ]
+                ] .
+                BIND (URI(CONCAT('https://data.hetarchief.be/id/organisatie/', ?orid)) AS ?org)
+                BIND (URI(CONCAT('{{params.env}}', ?orid)) AS ?logo)
+            }
+            """,
+        },
+        params={
+            "env": f"https://assets-{env}.viaa.be/images/" if env != "prd" else "https://assets.viaa.be/images/"
+        },
+        op_kwargs={"http_conn_id": endpoint_conn_id},
+    )
+
+    tl_ml = PythonOperator(
+        task_id="add_ldap_logo",
+        python_callable=sparql_update,
+        templates_dict={
+            "query": """
+            PREFIX org:        <http://www.w3.org/ns/org#>
+            PREFIX schema: <https://schema.org/>
+
+            PREFIX graphs: <https://data.hetarchief.be/graph/>
+            PREFIX source: <https://data.hetarchief.be/ns/source#>
+
+            WITH graphs:organizations
+            INSERT {
+                    ?org a org:Organization;
+                            schema:logo ?logo.
+            }
+            USING graphs:ldap_organizations
+            WHERE {
+                # Organization
+                ?o source:objectClass "organization";
+                    source:o ?orid.
+
+                BIND (URI(CONCAT('https://data.hetarchief.be/id/organisatie/', ?orid)) AS ?org)
+                BIND (URI(CONCAT('{{params.env}}', ?orid)) AS ?logo)
+            }
+            """,
+        },
+        params={
+            "env": f"https://assets-{env}.viaa.be/images/" if env != "prd" else "https://assets.viaa.be/images/"
+        },
+        op_kwargs={"http_conn_id": endpoint_conn_id},
+    )
+
     d1 = PythonOperator(
         task_id="ldap_organizations_drop",
         python_callable=sparql_update,
@@ -572,11 +644,12 @@ with DAG(
     c3 >> e3
     c4 >> e4
 
-    e1 >> [m1, m4, m5, m9, m11, m12, m13] >> d1
+    e1 >> [m1, m4, m5, m9, m11, m12, m13, tl_ml] >> d1
     e2 >> m2 >> d2
-    e3 >> [m3, m6, m7, m8, m10] >> d3
-    e4 >> [m3, m6, m7, m8, m10] >> d3
+    e3 >> [m3, m6, m7, m8, m10, ml] >> d3
+    e4 >> [m3, m6, m7, m8, m10, ml] >> d3
+    [m3, m6, m7, m8, m10, ml] >> d4
 
     [e1, e2, e3, e4] >> c >> mp
-    c >> [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, mt] >> d4
+    c >> [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, mt, ml, tl_ml]
     [d1, d2, d3, d4] >> opt

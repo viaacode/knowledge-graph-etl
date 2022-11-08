@@ -13,7 +13,6 @@ INSERT {
         ?org a org:Organization;
                 schema:identifier ?orid;
                 skos:altLabel ?orgName;
-                schema:logo ?logo;
                 meemoo:sector ?sector;
                 org:hasPrimarySite ?site;
                 org:hasSite ?site.
@@ -37,7 +36,6 @@ WHERE {
         source:description ?orgName .
 
     BIND (URI(CONCAT(?ns, ?orid)) AS ?org)
-    BIND (URI(CONCAT('https://assets.viaa.be/images/', ?orid)) AS ?logo)
 
     # Address
     OPTIONAL {

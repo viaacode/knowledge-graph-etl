@@ -15,7 +15,6 @@ INSERT {
                 schema:identifier ?orid;
                 skos:prefLabel ?orgName;
                 foaf:homepage ?homepage;
-                schema:logo ?logo;
                 dct:description ?desc;
                 org:hasPrimarySite ?site;
                 org:hasSite ?site.
@@ -46,7 +45,6 @@ WHERE {
         ]
     ] .
     BIND (URI(CONCAT(?ns, ?orid)) AS ?org)
-    BIND (URI(CONCAT('https://assets.viaa.be/images/', ?orid)) AS ?logo)
     BIND (URI(CONCAT(?ns, MD5(CONCAT(?orid, "-site")))) AS ?site)
 
     OPTIONAL { ?o source:name ?orgName. }
