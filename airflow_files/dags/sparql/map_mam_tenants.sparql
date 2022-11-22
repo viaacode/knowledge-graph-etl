@@ -1,4 +1,4 @@
-PREFIX mh:     <https://data.hetarchief.be/ns/mediahaven#>
+PREFIX mh:     <https://data.hetarchief.be/ns/mediahaven/>
 
 CONSTRUCT {
     ?org mh:label ?Name      

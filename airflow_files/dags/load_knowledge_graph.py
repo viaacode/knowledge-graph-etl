@@ -33,7 +33,7 @@ default_args = {
 }
 
 DIR = Variable.get("data_path", "./files")
-SRC_NS = Variable.get("source_ns", "https://data.hetarchief.be/ns/source#")
+SRC_NS = Variable.get("source_ns", "https://data.hetarchief.be/ns/source/")
 GRAPH_NS = Variable.get("graph_ns", "https://data.hetarchief.be/graph/")
 
 env = Variable.get("env", "qas")
@@ -525,7 +525,7 @@ with DAG(
             PREFIX schema: <https://schema.org/>
 
             PREFIX graphs: <https://data.hetarchief.be/graph/>
-            PREFIX source: <https://data.hetarchief.be/ns/source#>
+            PREFIX source: <https://data.hetarchief.be/ns/source/>
 
             WITH graphs:organizations
             INSERT {
@@ -564,7 +564,7 @@ with DAG(
             PREFIX schema: <https://schema.org/>
 
             PREFIX graphs: <https://data.hetarchief.be/graph/>
-            PREFIX source: <https://data.hetarchief.be/ns/source#>
+            PREFIX source: <https://data.hetarchief.be/ns/source/>
 
             WITH graphs:organizations
             INSERT {
