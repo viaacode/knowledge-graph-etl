@@ -4,5 +4,5 @@ CONSTRUCT {
     ?org mh:label ?Name      
 }
 WHERE {
-  BIND (URI(CONCAT('https://data.hetarchief.be/id/organisatie/', ?ExternalId)) AS ?org)
+  BIND (URI(CONCAT('https://data.hetarchief.be/id/organization/', ?ExternalId)) AS ?org)
 }

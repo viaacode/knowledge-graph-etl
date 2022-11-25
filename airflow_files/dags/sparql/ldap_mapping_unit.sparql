@@ -1,6 +1,6 @@
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX org:        <http://www.w3.org/ns/org#>
-PREFIX meemoo:     <https://data.hetarchief.be/ns/organisatie/>
+PREFIX meemoo:     <https://data.hetarchief.be/ns/organization/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX schema: <https://schema.org/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
@@ -34,7 +34,7 @@ INSERT {
 }
 USING graphs:ldap_organizations
 WHERE {
-    BIND ('https://data.hetarchief.be/id/organisatie/' AS ?ns)
+    BIND ('https://data.hetarchief.be/id/organization/' AS ?ns)
 
     # Units
     ?u source:objectClass "organizationalUnit";

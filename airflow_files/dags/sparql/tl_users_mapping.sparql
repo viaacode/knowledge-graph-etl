@@ -18,7 +18,7 @@ INSERT {
             org:holds ?post.
 
         ?post  a org:Post;
-                org:postIn <https://data.hetarchief.be/id/organisatie/OR-w66976m>; #meemoo
+                org:postIn <https://data.hetarchief.be/id/organization/OR-w66976m>; #meemoo
                 org:role ?role.
 
         ?role a org:Role; skos:prefLabel ?function_label. 
@@ -26,7 +26,7 @@ INSERT {
 }
 USING graphs:tl_users
 WHERE {
-    BIND ('https://data.hetarchief.be/id/organisatie/' AS ?ns)
+    BIND ('https://data.hetarchief.be/id/organization/' AS ?ns)
     # Account manager
     ?ru source:id ?amid;
         source:first_name ?fn;
