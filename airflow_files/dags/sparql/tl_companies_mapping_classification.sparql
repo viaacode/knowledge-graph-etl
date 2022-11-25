@@ -35,7 +35,7 @@ WHERE {
         ].
         ?cf_class source:id ?cf_class_id; source:label "1.1 - Type organisatie" . 
         
-        BIND (URI(CONCAT('https://data.hetarchief.be/id/organisatie-type#', LCASE(REPLACE(STRAFTER(?class_field, ' - '),' ','_')))) AS ?class)
+        BIND (URI(CONCAT('https://data.hetarchief.be/id/organization-type/', LCASE(REPLACE(STRAFTER(?class_field, ' - '),' ','_')))) AS ?class)
     }
 
     BIND (URI(CONCAT('https://data.hetarchief.be/id/organization/', ?orid)) AS ?org)

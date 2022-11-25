@@ -544,7 +544,7 @@ with DAG(
                         source:id ?cf_orid_id
                     ]
                 ] .
-                BIND (URI(CONCAT('https://data.hetarchief.be/id/organisatie/', ?orid)) AS ?org)
+                BIND (URI(CONCAT('https://data.hetarchief.be/id/organization/', ?orid)) AS ?org)
                 BIND (URI(CONCAT('{{params.env}}', ?orid)) AS ?logo)
             }
             """,
@@ -577,7 +577,7 @@ with DAG(
                 ?o source:objectClass "organization";
                     source:o ?orid.
 
-                BIND (URI(CONCAT('https://data.hetarchief.be/id/organisatie/', ?orid)) AS ?org)
+                BIND (URI(CONCAT('https://data.hetarchief.be/id/organization/', ?orid)) AS ?org)
                 BIND (URI(CONCAT('{{params.env}}', ?orid)) AS ?logo)
             }
             """,

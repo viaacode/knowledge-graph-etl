@@ -44,7 +44,7 @@ WHERE {
     }
     BIND (STRLANG(?function, "nl") AS ?function_label)
     BIND (URI(CONCAT(?ns, MD5(CONCAT(?amid,?function)))) AS ?post)
-    BIND (URI(CONCAT('https://data.hetarchief.be/id/organisatie-functie#', ENCODE_FOR_URI(?function))) AS ?role)
+    BIND (URI(CONCAT('https://data.hetarchief.be/id/organization-role/', ENCODE_FOR_URI(?function))) AS ?role)
 
     BIND (URI(CONCAT(?ns, MD5(?amid))) AS ?am)
     BIND (CONCAT('mailto:', ?email) AS ?mbox)
