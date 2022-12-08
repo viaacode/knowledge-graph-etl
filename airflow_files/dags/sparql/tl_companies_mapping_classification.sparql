@@ -1,12 +1,12 @@
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX org:        <http://www.w3.org/ns/org#>
-PREFIX meemoo:     <https://data.hetarchief.be/ns/organisatie#>
+PREFIX meemoo:     <https://data.hetarchief.be/ns/organization/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX schema: <https://schema.org/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 PREFIX graphs: <https://data.hetarchief.be/graph/>
-PREFIX source: <https://data.hetarchief.be/ns/source#>
+PREFIX source: <https://data.hetarchief.be/ns/source/>
 
 WITH graphs:organizations
 INSERT {
@@ -35,8 +35,8 @@ WHERE {
         ].
         ?cf_class source:id ?cf_class_id; source:label "1.1 - Type organisatie" . 
         
-        BIND (URI(CONCAT('https://data.hetarchief.be/id/organisatie-type#', LCASE(REPLACE(STRAFTER(?class_field, ' - '),' ','_')))) AS ?class)
+        BIND (URI(CONCAT('https://data.hetarchief.be/id/organization-type/', LCASE(REPLACE(STRAFTER(?class_field, ' - '),' ','_')))) AS ?class)
     }
 
-    BIND (URI(CONCAT('https://data.hetarchief.be/id/organisatie/', ?orid)) AS ?org)
+    BIND (URI(CONCAT('https://data.hetarchief.be/id/organization/', ?orid)) AS ?org)
 }

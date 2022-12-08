@@ -33,7 +33,7 @@ default_args = {
 }
 
 DIR = Variable.get("data_path", "./files")
-SRC_NS = Variable.get("source_ns", "https://data.hetarchief.be/ns/source#")
+SRC_NS = Variable.get("source_ns", "https://data.hetarchief.be/ns/source/")
 GRAPH_NS = Variable.get("graph_ns", "https://data.hetarchief.be/graph/")
 
 env = Variable.get("env", "qas")
@@ -525,7 +525,7 @@ with DAG(
             PREFIX schema: <https://schema.org/>
 
             PREFIX graphs: <https://data.hetarchief.be/graph/>
-            PREFIX source: <https://data.hetarchief.be/ns/source#>
+            PREFIX source: <https://data.hetarchief.be/ns/source/>
 
             WITH graphs:organizations
             INSERT {
@@ -544,7 +544,7 @@ with DAG(
                         source:id ?cf_orid_id
                     ]
                 ] .
-                BIND (URI(CONCAT('https://data.hetarchief.be/id/organisatie/', ?orid)) AS ?org)
+                BIND (URI(CONCAT('https://data.hetarchief.be/id/organization/', ?orid)) AS ?org)
                 BIND (URI(CONCAT('{{params.env}}', ?orid)) AS ?logo)
             }
             """,
@@ -564,7 +564,7 @@ with DAG(
             PREFIX schema: <https://schema.org/>
 
             PREFIX graphs: <https://data.hetarchief.be/graph/>
-            PREFIX source: <https://data.hetarchief.be/ns/source#>
+            PREFIX source: <https://data.hetarchief.be/ns/source/>
 
             WITH graphs:organizations
             INSERT {
@@ -577,7 +577,7 @@ with DAG(
                 ?o source:objectClass "organization";
                     source:o ?orid.
 
-                BIND (URI(CONCAT('https://data.hetarchief.be/id/organisatie/', ?orid)) AS ?org)
+                BIND (URI(CONCAT('https://data.hetarchief.be/id/organization/', ?orid)) AS ?org)
                 BIND (URI(CONCAT('{{params.env}}', ?orid)) AS ?logo)
             }
             """,

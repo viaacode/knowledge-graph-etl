@@ -1,13 +1,13 @@
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX org:        <http://www.w3.org/ns/org#>
-PREFIX meemoo:     <https://data.hetarchief.be/ns/organisatie#>
+PREFIX meemoo:     <https://data.hetarchief.be/ns/organization/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX schema: <https://schema.org/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX dct: <http://purl.org/dc/terms/>
 
 PREFIX graphs: <https://data.hetarchief.be/graph/>
-PREFIX source: <https://data.hetarchief.be/ns/source#>
+PREFIX source: <https://data.hetarchief.be/ns/source/>
 
 WITH graphs:organizations
 INSERT {
@@ -34,7 +34,7 @@ INSERT {
 USING graphs:tl_companies
 USING graphs:tl_custom_fields
 WHERE {
-    BIND ('https://data.hetarchief.be/id/organisatie/' AS ?ns)
+    BIND ('https://data.hetarchief.be/id/organization/' AS ?ns)
     # Organizations
     ?cf_orid source:id ?cf_orid_id; source:label "5.1 - OR-ID" . 
     ?o source:custom_fields [
