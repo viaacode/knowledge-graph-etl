@@ -156,6 +156,24 @@ with DAG(
         print(
             f"JSON records from {schema}.{table} have been inserted in {http_conn_id}."
         )
+    
+    def extract_from_file_and_insert(ds, **kwargs):
+        """Extract the JSON data from a file, map it, and directly insert it."""
+
+        filename = kwargs.get("filename")
+        namespace = kwargs.get("namespace")
+        http_conn_id = kwargs.get("http_conn_id")
+        graph = kwargs.get("graph", None)
+
+        with open(filename) as f:
+            hook = SparqlUpdateHook(method="POST", http_conn_id=http_conn_id)
+
+            triples_gen = parse_json(f.read(), namespace=Namespace(namespace))
+            hook.insert(triples_gen, graph)
+
+        print(
+            f"JSON records from {filename} have been inserted in {http_conn_id}."
+        )
 
     def sparql_update(ds, **kwargs):
         """Execute a sparql query on a sparql endpoint."""
@@ -301,6 +319,17 @@ with DAG(
             "http_conn_id": endpoint_conn_id,
             "namespace": SRC_NS,
             "graph": f"{GRAPH_NS}tl_custom_fields",
+        },
+    )
+
+    e5 = PythonOperator(
+        task_id="mediahaven_tenants_extract_json",
+        python_callable=extract_from_file_and_insert,
+        op_kwargs={
+            "filename": f"/files/mam_tenants_{env}.json",
+            "http_conn_id": endpoint_conn_id,
+            "namespace": SRC_NS,
+            "graph": f"{GRAPH_NS}mediahaven_tenants",
         },
     )
 
@@ -470,12 +499,11 @@ with DAG(
     )
 
     mt = PythonOperator(
-        task_id="insert_mam_tenants",
-        python_callable=insert_file,
+        task_id="map_mediahaven_tenants",
+        python_callable=sparql_update,
         op_kwargs={
-            "filename": f"/files/mam_tenants_{env}.nt",
+            "query": "sparql/map_mam_tenants.sparql",
             "http_conn_id": endpoint_conn_id,
-            "graph": f"{GRAPH_NS}organizations",
         },
     )
 
@@ -628,6 +656,16 @@ with DAG(
         params={"graph": f"{GRAPH_NS}tl_custom_fields"},
     )
 
+    d5 = PythonOperator(
+        task_id="mediahaven_tenants_drop",
+        python_callable=sparql_update,
+        op_kwargs={"http_conn_id": endpoint_conn_id},
+        templates_dict={"query": """
+        DROP SILENT GRAPH <{{params.graph}}>
+        """},
+        params={"graph": f"{GRAPH_NS}mediahaven_tenants"},
+    )
+
     opt = SimpleHttpOperator(
         task_id="optimize_db",
         http_conn_id=optimize_conn_id,
@@ -648,8 +686,11 @@ with DAG(
     e2 >> m2 >> d2
     e3 >> [m3, m6, m7, m8, m10, ml] >> d3
     e4 >> [m3, m6, m7, m8, m10, ml] >> d3
+    e5 >> mt >> d5
     [m3, m6, m7, m8, m10, ml] >> d4
 
     [e1, e2, e3, e4] >> c >> mp
+
     c >> [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, mt, ml, tl_ml]
-    [d1, d2, d3, d4] >> opt
+    c >> [m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, ml, tl_ml]
+    [d1, d2, d3, d4, d5] >> opt

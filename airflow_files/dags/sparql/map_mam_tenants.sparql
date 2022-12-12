@@ -1,8 +1,16 @@
 PREFIX mh:     <https://data.hetarchief.be/ns/mediahaven/>
 
-CONSTRUCT {
-    ?org mh:label ?Name      
+PREFIX graphs: <https://data.hetarchief.be/graph/>
+PREFIX source: <https://data.hetarchief.be/ns/source/>
+
+WITH graphs:organizations
+INSERT {
+        ?org mh:label ?Name  
 }
+USING graphs:mediahaven_tenants
 WHERE {
-  BIND (URI(CONCAT('https://data.hetarchief.be/id/organization/', ?ExternalId)) AS ?org)
+    ?x source:Name ?Name.
+    ?x source:ExternalId ?ExternalId
+
+    BIND (URI(CONCAT('https://data.hetarchief.be/id/organization/', ?ExternalId)) AS ?org)
 }
