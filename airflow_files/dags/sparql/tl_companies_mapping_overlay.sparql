@@ -10,8 +10,8 @@ PREFIX source: <https://data.hetarchief.be/ns/source/>
 
 WITH graphs:organizations
 INSERT {
-        ?org meemoo:allowsOverlay ?overlay;
-             meemoo:allowsBZT ?bzt
+        ?org meemoo:allowsOverlay ?overlay_value;
+             meemoo:allowsBZT ?bzt_value
 }
 USING graphs:tl_companies
 USING graphs:tl_custom_fields
@@ -26,17 +26,18 @@ WHERE {
         source:definition [
             source:id ?cf_orid_id #"c3a10038-7a8e-0e96-bd4a-53e4668e6244"
         ]
-    ],
+    ].
+
     # 4.2 - Overlay
-    [
+    ?o source:custom_fields [
         #"true"^^<http://www.w3.org/2001/XMLSchema#boolean>
         source:value ?overlay;
         source:definition [
             source:id ?cf_overlay_id # "9987d9fa-0230-0205-b75e-6cd219362f46"
         ]
-    ],
+    ].
     # 4.1 - Bezoekertool
-    [
+    ?o source:custom_fields[
         #"true"^^<http://www.w3.org/2001/XMLSchema#boolean>
         source:value ?bzt;
         source:definition [
@@ -44,6 +45,8 @@ WHERE {
         ]
     ] .
 
+    BIND (IF(BOUND(?overlay), ?overlay, "false"^^<http://www.w3.org/2001/XMLSchema#boolean>) AS ?overlay_value)
+    BIND (IF(BOUND(?bzt), ?bzt, "false"^^<http://www.w3.org/2001/XMLSchema#boolean>) AS ?bzt_value)
     BIND (URI(CONCAT('https://data.hetarchief.be/id/organization/', ?orid)) AS ?org)
 
 }
